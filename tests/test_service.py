@@ -151,8 +151,15 @@ def test_message_pydantic_max_length_validation():
         Message(text="x" * 2001)
 
 
-def test_session_id_propagation(service):
-    """Session ID is preserved across handling."""
-    msg = Message(text="hello", session_id="user-session-42")
-    resp = service.handle(msg)
-    assert resp.intent == Intent.GREETING
+def test_session_id_propagation(service, caplog):
+    """Session ID is preserved across handling and recorded in structured logs."""
+    import logging
+
+    with caplog.at_level(logging.INFO):
+        msg = Message(text="hello", session_id="user-session-42")
+        resp = service.handle(msg)
+        assert resp.intent == Intent.GREETING
+        assert any(
+            getattr(record, "session", None) == "user-session-42" or "user-session-42" in record.getMessage()
+            for record in caplog.records
+        )
