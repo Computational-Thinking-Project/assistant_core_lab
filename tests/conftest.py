@@ -1,6 +1,6 @@
 """Shared pytest fixtures for assistant_core test suite.
 
-Phụ trách: Thành viên 7 (Tâm @AI-WFox) phối hợp cùng toàn nhóm.
+Owner: Member 7 (Tam @AI-WFox) in collaboration with the team.
 """
 
 from pathlib import Path

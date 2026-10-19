@@ -1,8 +1,8 @@
 """Integration and characterisation tests for AssistantService.
 
-Phụ trách: Thành viên 7 (Tâm @AI-WFox) phối hợp cùng Thành viên 1 (Duy @johannguyen015).
-Phạm vi: Toàn bộ kịch bản tích hợp của AssistantService, characterisation tests,
-         xác thực biên Pydantic, kịch bản fallback khi AI provider lỗi.
+Owner: Member 7 (Tam @AI-WFox) in collaboration with Member 1 (Duy @johannguyen015).
+Scope: Comprehensive integration coverage for AssistantService, characterisation tests,
+       Pydantic schema boundaries, and AI provider fallback handling.
 """
 
 import pytest
