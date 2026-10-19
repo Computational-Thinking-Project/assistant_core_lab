@@ -5,7 +5,10 @@ Phạm vi: Intent, Message, Source, Response
 """
 
 from enum import Enum
+
 from pydantic import BaseModel, Field
+
+__all__ = ["Intent", "Message", "Response", "Source"]
 
 
 class Intent(str, Enum):

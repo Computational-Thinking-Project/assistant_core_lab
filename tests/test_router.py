@@ -70,6 +70,12 @@ def test_route_office_not_in_names() -> None:
     assert route("Where is the clinic?", SAMPLE_OFFICES) is Intent.RULE
 
 
+def test_route_office_unnormalized_names() -> None:
+    unnormalized_offices = {"Library", "Student Affairs", "ADMISSIONS"}
+    assert route("where is the library?", unnormalized_offices) is Intent.OFFICE
+    assert route("what time does student affairs open?", unnormalized_offices) is Intent.OFFICE
+
+
 def test_message_valid() -> None:
     msg = Message(text="hello assistant")
     assert msg.text == "hello assistant"
