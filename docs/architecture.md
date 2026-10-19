@@ -92,14 +92,42 @@ AssistantService.handle(msg: Message) -> Response
 1. **Branching Strategy**:
    - `main`: Protected branch.
    - Feature branches:
-     - Member 2: `feat/config-errors`
-     - Member 3: `feat/models-router`
-     - Member 4: `feat/knowledge`
-     - Member 5: `feat/tools`
-     - Member 6: `feat/responder-logging`
-     - Member 1: `feat/service-cli`
-     - Member 7: `test/integration-quality-gates`
-2. **Quality Gates**:
+     - Member 1 (Duy): `feat/service-cli`
+     - Member 2 (Hùng): `feat/config-errors`
+     - Member 3 (Đạt): `feat/models-router`
+     - Member 4 (Bội Anh): `feat/knowledge`
+     - Member 5 (Quỳnh): `feat/tools`
+     - Member 6 (Trung Anh): `feat/responder-logging`
+     - Member 7 (Tâm): `test/integration-quality-gates`
+
+2. **Peer Review Protocol ("Người trên review người dưới")**:
+   Each member submits their PR according to the closed-loop review table:
+
+   | Author (PR Owner) | Reviewer | Ownership Scope & Review Focus |
+   |---|---|---|
+   | **Duy** (`@johannguyen015`) | **Tâm** (`@benalexx007`) | `service.py`, `__main__.py`, `docs/architecture.md`, end-to-end integration |
+   | **Hùng** (`@philip-kkk`) | **Duy** (`@johannguyen015`) | `config.py`, `errors.py`, `.env.example`, secret protection (Twelve-Factor III) |
+   | **Đạt** (`@Thanhdat3010`) | **Hùng** (`@philip-kkk`) | `models.py`, `router.py`, `tests/test_router.py`, validation |
+   | **Bội Anh** (`@htbaax`) | **Đạt** (`@Thanhdat3010`) | `knowledge.py`, `data/`, no global mutable state, `DataError` |
+   | **Quỳnh** (`@nhatquynh1107`) | **Bội Anh** (`@htbaax`) | `tools.py`, pure calculation functions, characterisation test 18cr/2retake = 9,450,000 VND |
+   | **Trung Anh** (`@AI-WFox`) | **Quỳnh** (`@nhatquynh1107`) | `responder.py`, `logging_setup.py`, JSON logs to stderr, `ProviderError` |
+   | **Tâm** (`@benalexx007`) | **Trung Anh** (`@AI-WFox`) | `tests/conftest.py`, `tests/test_service.py`, Ruff gates & CI integration |
+
+3. **CLI Usage**:
+   - One-shot execution:
+     ```bash
+     python -m assistant_core "tuition for 18 credits and 2 retake"
+     ```
+   - Interactive REPL mode:
+     ```bash
+     python -m assistant_core
+     ```
+   - Characterisation verification mode (runs monolith test suite):
+     ```bash
+     python -m assistant_core --test
+     ```
+
+4. **Quality Gates**:
    - Run `pytest -q` (all tests must pass, minimum 10 tests across the team).
-   - Run `ruff check .` (clean, no warnings or errors).
-   - Run `ruff format .`.
+   - Run `ruff check src tests` (clean, no warnings or errors).
+   - Run `ruff format --check src tests`.
