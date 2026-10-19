@@ -6,6 +6,7 @@ Phạm vi: JsonFormatter, setup_logging()
 
 import json
 import logging
+from typing import TextIO
 
 
 class JsonFormatter(logging.Formatter):
@@ -26,8 +27,8 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(data, ensure_ascii=False)
 
 
-def setup_logging(level: str = "INFO") -> None:
-    """Configure the package logger to emit JSON to stderr, without duplicates."""
+def setup_logging(level: str = "INFO", stream: TextIO | None = None) -> None:
+    """Emit JSON to the supplied stream (stderr by default), without duplicates."""
     logger = logging.getLogger("assistant_core")
     logger.setLevel(level)
 
@@ -35,7 +36,7 @@ def setup_logging(level: str = "INFO") -> None:
         logger.removeHandler(handler)
         handler.close()
 
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(stream)
     handler.setFormatter(JsonFormatter())
     logger.addHandler(handler)
     logger.propagate = False

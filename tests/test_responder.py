@@ -5,6 +5,8 @@ Phụ trách: Thành viên 6
 
 import json
 import logging
+import sys
+from io import StringIO
 
 import pytest
 
@@ -110,13 +112,27 @@ def test_logging_excludes_unapproved_extras(package_logger, capsys):
 
 
 def test_setup_logging_uses_stderr(package_logger, capsys):
-    setup_logging()
+    setup_logging(stream=sys.stderr)
     logging.getLogger("assistant_core.service").info("handled")
     print("Answer")
 
     captured = capsys.readouterr()
     assert captured.out == "Answer\n"
     assert json.loads(captured.err)["logger"] == "assistant_core.service"
+
+
+def test_setup_logging_uses_custom_stream(package_logger, capsys):
+    stream = StringIO()
+    setup_logging(stream=stream)
+    package_logger.info("handled")
+
+    assert json.loads(stream.getvalue()) == {
+        "level": "INFO",
+        "logger": "assistant_core",
+        "msg": "handled",
+    }
+    captured = capsys.readouterr()
+    assert captured.out == captured.err == ""
 
 
 def test_setup_logging_does_not_duplicate_messages(package_logger, capsys):
