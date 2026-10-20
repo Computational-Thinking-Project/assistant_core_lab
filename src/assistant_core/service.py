@@ -46,11 +46,14 @@ except (ImportError, AttributeError):
 
 
 try:
-    from assistant_core.errors import AssistantError, ProviderError
+    from assistant_core.errors import AssistantError, InvalidRequest, ProviderError
 except (ImportError, AttributeError):
 
     class AssistantError(Exception):
         """Base exception for assistant_core."""
+
+    class InvalidRequest(AssistantError):
+        """The user's request cannot be processed as given."""
 
     class ProviderError(AssistantError):
         """External provider error."""
@@ -264,7 +267,11 @@ class AssistantService:
             parse_credits = _default_parse_credits
             tuition = _default_tuition
 
-        credits_val, retake_val = parse_credits(text)
+        try:
+            credits_val, retake_val = parse_credits(text)
+        except InvalidRequest as err:
+            return Response(answer=str(err), intent=Intent.FEE)
+
         if credits_val == 0:
             return Response(answer="How many credits?", intent=Intent.FEE)
 
@@ -280,7 +287,7 @@ class AssistantService:
                 max_credits=self.max_credits,
             )
             return Response(answer=f"Your tuition is {total} VND", intent=Intent.FEE)
-        except ValueError:
+        except (InvalidRequest, ValueError):
             return Response(answer="too many credits", intent=Intent.FEE)
 
     def _handle_office(self, text: str) -> Response:
