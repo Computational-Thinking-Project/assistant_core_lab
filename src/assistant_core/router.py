@@ -14,6 +14,8 @@ GREETINGS = frozenset({"hi", "hello", "hey", "xin chao"})
 def route(text: str, office_names: set[str]) -> Intent:
     """Classify user text into an Intent based on simple deterministic rules."""
     t = text.lower().strip().rstrip("?!.")
+    if t == "help" or text.strip() == "?":
+        return Intent.HELP
     if t in GREETINGS:
         return Intent.GREETING
     if "fee" in t or "tuition" in t:
