@@ -1,5 +1,14 @@
 # Architecture Note: assistant_core
 
+## H1 extension: help command
+
+`Message(text="help")` and `Message(text="?")` route to `Intent.HELP`.
+`AssistantService` returns a deterministic capability list with empty sources
+and `degraded=False`; no responder is called. Exact command matching keeps
+office questions containing `helpdesk` and longer fee/rule questions on their
+existing routes. The public `handle(Message) -> Response` interface remains
+unchanged. The existing fallback router also recognises help.
+
 ## 1. Overview and Target Architecture
 
 `assistant_core` is a refactored Python package designed for high maintainability, testability, and clear separation of concerns. It transitions a monolithic script into a modular service with typed data models, deterministic business logic, safe environment-driven configuration, and structured logging.
