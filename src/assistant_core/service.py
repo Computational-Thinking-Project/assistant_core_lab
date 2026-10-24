@@ -120,7 +120,7 @@ def _default_tuition(
 # Default router fallback
 def _default_route(text: str, office_names: set[str]) -> Intent:
     m = text.lower().strip()
-    if m.rstrip("?!.") == "help" or m == "?":
+    if m.rstrip("?!.") in {"help", "?", "-h", "--help", "guide"} or m in {"?", "-h", "--help"}:
         return Intent.HELP
     if m in ["hi", "hello", "hey", "xin chao"]:
         return Intent.GREETING

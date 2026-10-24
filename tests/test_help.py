@@ -8,12 +8,13 @@ from pathlib import Path
 import pytest
 
 from assistant_core.models import Intent, Message
-from assistant_core.router import route
+from assistant_core.router import HELP_COMMANDS, route
 from assistant_core.service import AssistantService, _default_route
 
 
-@pytest.mark.parametrize("text", ["help", " HELP ", "Help!", "help?", "?"])
+@pytest.mark.parametrize("text", ["help", " HELP ", "Help!", "help?", "?", "-h", "--help", "guide", "GUIDE!"])
 def test_help_route(text: str) -> None:
+    assert "-h" in HELP_COMMANDS and "--help" in HELP_COMMANDS
     assert route(text, {"it helpdesk"}) is Intent.HELP
 
 
@@ -21,6 +22,7 @@ def test_help_does_not_capture_other_questions() -> None:
     assert route("where is the it helpdesk", {"it helpdesk"}) is Intent.OFFICE
     assert route("help me with tuition", set()) is Intent.FEE
     assert route("help with thesis registration", set()) is Intent.RULE
+    assert route("guide to thesis registration", set()) is Intent.RULE
 
 
 def test_help_response_works_without_provider_or_knowledge() -> None:
@@ -37,7 +39,7 @@ def test_help_response_works_without_provider_or_knowledge() -> None:
 
 
 def test_help_fallback_router_matches_public_router() -> None:
-    for text in ("help", "HELP?!", "?", "help me with tuition", "where is the it helpdesk"):
+    for text in ("help", "HELP?!", "?", "-h", "--help", "guide", "help me with tuition", "where is the it helpdesk"):
         assert _default_route(text, {"it helpdesk"}) is route(text, {"it helpdesk"})
 
 
@@ -52,11 +54,12 @@ def test_help_serialization_and_private_logging(caplog: pytest.LogCaptureFixture
     assert caplog.records[-1].intent == "help"
 
 
-def test_cli_help_preserves_stdout_and_metadata_logs() -> None:
+@pytest.mark.parametrize("flag", ["help", "-h", "--help", "?"])
+def test_cli_help_preserves_stdout_and_metadata_logs(flag: str) -> None:
     root = Path(__file__).resolve().parents[1]
     env = dict(os.environ, PYTHONPATH=str(root / "src"))
     result = subprocess.run(
-        [sys.executable, "-m", "assistant_core", "help"],
+        [sys.executable, "-m", "assistant_core", flag],
         cwd=root,
         env=env,
         capture_output=True,
