@@ -25,6 +25,7 @@ except (ImportError, AttributeError):
 
     class Intent(str, Enum):
         GREETING = "greeting"
+        HELP = "help"
         FEE = "fee"
         OFFICE = "office"
         RULE = "rule"
@@ -119,6 +120,8 @@ def _default_tuition(
 # Default router fallback
 def _default_route(text: str, office_names: set[str]) -> Intent:
     m = text.lower().strip()
+    if m.rstrip("?!.") in {"help", "?", "-h", "--help", "guide"} or m in {"?", "-h", "--help"}:
+        return Intent.HELP
     if m in ["hi", "hello", "hey", "xin chao"]:
         return Intent.GREETING
     if "fee" in m or "tuition" in m:
@@ -243,6 +246,18 @@ class AssistantService:
         return response
 
     def _dispatch(self, intent: Intent, text: str, msg: Message) -> Response:
+        if intent == Intent.HELP:
+            return Response(
+                answer=(
+                    "I can help with:\n"
+                    "- Greetings: hi\n"
+                    "- Tuition: tuition for 18 credits and 2 retake\n"
+                    "- Office lookup: where is the library\n"
+                    "- Handbook rules: thesis registration credits\n"
+                    "Type help or ? to show this list again."
+                ),
+                intent=Intent.HELP,
+            )
         if intent == Intent.GREETING:
             return Response(
                 answer="Hello! I can help with offices, fees and rules.",

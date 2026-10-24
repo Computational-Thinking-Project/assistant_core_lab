@@ -15,6 +15,7 @@ class Intent(str, Enum):
     """Supported intent categories."""
 
     GREETING = "greeting"
+    HELP = "help"
     FEE = "fee"
     OFFICE = "office"
     RULE = "rule"
