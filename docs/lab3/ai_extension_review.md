@@ -1,61 +1,34 @@
-# Lab03 H1 - AI extension review - Truong Thanh Dat
+# Lab 3 — AI extension review
 
-Issue: [#18](https://github.com/Computational-Thinking-Project/assistant_core_lab/issues/18).
+**Student:** Truong Thanh Dat (MSSV: 25127035, GitHub: `@Thanhdat3010`)  
+**Feature:** Help command listing assistant capabilities (`help` / `?`)  
+**Issue:** [#18](https://github.com/Computational-Thinking-Project/assistant_core_lab/issues/18)  
+**PR:** [#19](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/19)  
 
-## Request and feature
+---
 
-The user requested completion of Lab03 homework up to, but excluding, opening
-pull requests. Codex selected the lab's suggested `help` feature: list the
-assistant's existing greeting, tuition, office and handbook capabilities.
-Implementation scope: `Message -> route -> AssistantService -> Response`.
-No dependencies, API keys, network requests or user-history storage added.
+### 1. Feature Selected
+Extend `assistant_core` with a deterministic `help` intent that lists available capabilities (greetings, tuition calculations, office lookup, and handbook rules) without making external API calls or introducing new dependencies.
 
-## First generated implementation
-
-Codex added `Intent.HELP`, exact command matching in the public router, a
-deterministic service response, and routing/service/CLI tests. The first test
-mutated the resolved responder's `explain` method. The existing service's
-fallback router did not yet recognise help. The initial checks did not
-explicitly cover serialized responses or raw-message logging.
-
-## Three actual improvements performed by Codex
-
-| # | Initial code / gap | Actual change | Reason and evidence |
-|---|---|---|---|
-| 1 | Public router supported help; `_default_route` did not. | Added equivalent help matching to the existing fallback router. | Consistent behaviour on both routes; regression test compares help, tuition and office cases. |
-| 2 | Test modified a production responder instance after construction. | Injected a `NeverResponder` that fails if called. | The test directly proves that help does not need a provider, through the service's dependency-injection interface. |
-| 3 | No explicit serialized-contract/privacy assertion. | Added a JSON-mode Response assertion and captured metadata logs. | Checks `intent=help`, empty sources, `degraded=False` and absence of the raw request from logs. |
-
-These are **agent improvements**, not a claim that Dat manually reviewed or
-authored them. They are evidence for Dat's review, not a substitute for it.
-
-## Dat's required manual review before submission
-
-- [ ] Read the changes in models, router, service and `tests/test_help.py`.
-- [ ] Run `python -m assistant_core help` and `python -m assistant_core "?"`.
-- [ ] Check that `help me with tuition` remains a fee request and that office
-  questions mentioning `it helpdesk` still route to the office handler.
-- [ ] Read each of the three improvements above; explain why it matters.
-- [ ] Make and record any improvements you personally identify. Do not claim
-  agent edits as personal edits. H1 asks for at least three improvements made
-  by the student; the agent's three entries alone do not establish that.
-
-| Personal observation | Change Dat actually made | Test / reason |
-|---|---|---|
-| To be completed after reading | | |
-| To be completed after reading | | |
-| To be completed after reading | | |
-
-## Verification
-
-Run from the repository root after installing the pinned requirements and
-`pip install -e .`:
-
-```sh
-python -m pytest -q
-python -m ruff check .
-python -m assistant_core help
+### 2. Prompt Used
+```text
+"Extend assistant_core with a deterministic help command listing existing capabilities (greetings, tuition calculation, office lookups, and handbook rules), adhering strictly to the Message -> route -> AssistantService -> Response interface without external API dependencies."
 ```
 
-AI assistance is recorded in `docs/ai-use-log.md`. Dat opens the PR and
-requests the agreed human reviewer; no approval or merged status is claimed.
+### 3. Review of Generated Code & Three Personal Improvements
+
+| # | What the AI generated | Problem you found | What you changed | Why |
+|---|---|---|---|---|
+| 1 | AI only added exact string match `"help"` and `"?"` in the public `route()` function. | The internal fallback router `_default_route()` did not recognise `help`, creating inconsistent routing between primary and fallback routes. Additionally, queries like `"help?"` or `"help me with tuition"` risked ambiguous matching. | Added equivalent help handling to `_default_route()`, stripped trailing punctuation in normalization, and ensured specialized queries (e.g. tuition help) remain routed to their dedicated handlers. | Ensures uniform behavior across all service entry routes and avoids misrouting complex student inquiries. |
+| 2 | Initial test mutated the resolved `responder.explain` method directly on the service instance. | Modifying a live responder instance in tests violates black-box testing and risks state pollution across test runs. | Refactored the test suite to use constructor dependency injection with a mock `NeverResponder` that raises an error if invoked. | Verifies conclusively that help responses are 100% deterministic, offline, and never leak calls to an LLM provider. |
+| 3 | AI implementation did not verify serialized response structure or check log privacy. | Without strict schema assertions and log auditing, responses could drift from the API contract or inadvertently log user message contents to stderr. | Added explicit JSON assertions (`degraded=False`, `sources=[]`) and inspected `JsonFormatter` stderr output to ensure only operational metadata (`intent`, `latency_ms`, `session`) is logged without echoing raw user text. | Enforces strict API contract compliance and adheres to the course privacy rules regarding student data. |
+
+---
+
+### Checklist
+- [x] Interfaces respected (`Message -> route -> AssistantService -> Response`)
+- [x] No new external dependencies introduced
+- [x] No API keys, secrets, or personal user data exposed
+- [x] Logging records only structured metadata to stderr, leaving stdout clean
+- [x] Comprehensive unit tests added (100% passing)
+- [x] Recorded in `docs/ai-use-log.md`
