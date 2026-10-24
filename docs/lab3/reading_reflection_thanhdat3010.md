@@ -25,12 +25,13 @@ In my evaluation of `assistant_monolith.py`, the most critical violation was **F
 In the original monolith script:
 1. Business rates (`RATE = 450000`, `RETAKE_MULTIPLIER = 1.5`), system parameters (`MAX_CREDITS = 30`), and sensitive credentials (`API_KEY = "sk-test-..."`) were hard-coded directly into the source file.
 2. Whenever a tuition rate changed or a credential needed rotation, developers were forced to edit and re-commit the core application code.
-3. This tight coupling not only created serious security risks (credential leakage into version control), but also made automated, reproducible testing across environments impossible.
+3. This tight coupling created credential leakage risks and prevented running automated, reproducible tests across distinct deployment environments.
 
-### How we resolved this in `assistant_core`:
+### How we addressed Factor III in `assistant_core` and current limitations:
 1. **Separation of Config:** We created `config.py` using Pydantic `BaseModel` to strictly validate environment configurations loaded via `python-dotenv`.
-2. **Secret Masking:** Fields like `llm_api_key` were marked with `repr=False` so they are never printed in debug logs or error traces.
+2. **Secret Masking Nuance:** Fields like `llm_api_key` are marked with `repr=False`. This hides the key when inspecting or printing the `Settings` object (e.g. in `print(settings)`), reducing the risk of accidental exposure in generic dumps. However, `repr=False` does not guarantee that secrets can never appear in logs or error traces (for example, if code explicitly logs `settings.llm_api_key` or if an unhandled exception prints local variables). Disciplined logging hygiene is still required.
 3. **Environment Templates:** We committed `.env.example` as a template for developers and deployment environments, while ensuring `.env` is ignored by `.gitignore`.
+4. **Current Architectural Limitation:** While the configuration schema exists, the current CLI entry point (`__main__.py`) initializes `AssistantService()` directly, relying on internal fallback defaults rather than explicitly injecting `load_settings()`. Complete end-to-end configuration wiring remains a separate integration task owned by the teammate responsible for the configuration module.
 
 ### Secondary Violation: Factor XI (Logs)
 The monolith interspersed `print("[debug] ...")` with actual functional output, polluting standard output and rendering programmatic piping unusable. We resolved this by routing structured JSON operational logs (`intent`, `latency_ms`, `degraded`) strictly to `stderr`, ensuring `stdout` outputs clean user-facing responses.
@@ -40,5 +41,5 @@ The monolith interspersed `print("[debug] ...")` with actual functional output, 
 ## 3. Self-Check Verification
 - [x] Read all five referenced materials and compared against repository layout.
 - [x] Analyzed trade-offs between monolithic and modular architectures.
-- [x] Formulated reflection in my own words based on actual refactoring experience.
+- [x] Formulated reflection in my own words based on actual refactoring experience and noted real code limitations.
 - [x] Verified full test pass (`pytest -q`: 104 passed) and clean Ruff checks.
