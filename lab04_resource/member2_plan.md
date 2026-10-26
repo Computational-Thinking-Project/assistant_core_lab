@@ -101,7 +101,7 @@ Thành viên 2 (Trương Thành Đạt) đảm nhận vai trò Backend Dev 1, ph
 
 ### Giai đoạn 5: Mở Pull Request Chuẩn mực
 - [x] Đặt tiêu đề PR: `feat(chat): implement POST /v1/chat endpoint and H2 reflection (#24)`
-- [x] Chọn Base branch: `docs/lab04-guide`
+- [x] Chọn Base branch: `main`
 - [x] Điền đầy đủ PR Description theo template chuẩn (What, Why, How tested, Evidence, AI use, Reflection H2, Checklist).
 - [x] Thông báo cho Tech Lead (Duy) để ưu tiên merge PR này đầu tiên (Merge #1), cung cấp nền tảng cho TV6 gắn Rate Limiting và TV7 viết tài liệu.
 
