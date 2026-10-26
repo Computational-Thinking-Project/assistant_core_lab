@@ -2,7 +2,7 @@
 **Name:** Pham Khanh Tam  
 **Role:** Member 4 (TV4) — Backend Dev 3 (External Weather & Resilience)  
 **Project:** Study Assistant (`assistant_core` / `assistant_api`)  
-**Issue:** `#04` (`api: implement GET /v1/weather endpoint with failure resilience (#04)`)  
+**Issue:** `#20` (`api: implement GET /v1/weather endpoint with failure resilience (#20)`)  
 **Branch:** `feat/04-weather-resilience`  
 **Target Grade:** 10/10 official + 1 bonus point = **11/10**
 
@@ -29,17 +29,17 @@ Member 4 (Tam) is responsible for integrating the external weather service with 
 ## 2. Step-by-Step Execution Plan
 
 ```
-[Phase 1: Issue #04 & Branch Creation] ──> [Phase 2: Implement Task T4] ──> [Phase 3: Resilience Analysis (P16)]
+[Phase 1: Issue #20 & Branch Creation] ──> [Phase 2: Implement Task T4] ──> [Phase 3: Resilience Analysis (P16)]
                                                                                              │
 [Phase 6: Peer Review & Handoff] <───── [Phase 5: Open Individual PR] <──── [Phase 4: Pytest & Swagger UI]
 ```
 
 ---
 
-### Phase 1: Issue #04 and Branch Creation
+### Phase 1: Issue #20 and Branch Creation
 
 1. **Create Issue on GitHub:**
-   - **Title:** `api: implement GET /v1/weather endpoint with failure resilience (#04)`
+   - **Title:** `api: implement GET /v1/weather endpoint with failure resilience (#20)`
    - **Labels:** `feat`, `backend`, `external`, `M4`
    - **Assignee:** `@AI-WFox`
    - **Body:**
@@ -121,7 +121,7 @@ Member 4 (Tam) is responsible for integrating the external weather service with 
 1. **Commit and Push Changes:**
    ```bash
    git add lab04_resource/starter/src/assistant_api/main.py lab04_resource/member4_plan.md docs/ai-use-log.md
-   git commit -m "feat(weather): implement GET /v1/weather endpoint with failure resilience (#04)"
+   git commit -m "feat(weather): implement GET /v1/weather endpoint with failure resilience (#20)"
    git push -u origin feat/04-weather-resilience
    ```
 2. **PR Content:**
