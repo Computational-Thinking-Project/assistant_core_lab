@@ -22,21 +22,21 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
 
 ## 👥 2. PHÂN CÔNG CHI TIẾT CHO 7 THÀNH VIÊN
 
-| TV | Vai trò | Trọng tâm công việc | Files liên quan | Sản phẩm bàn giao |
-|:---:|:---|:---|:---|:---|
-| **TV1** | **Tech Lead & Auth Lead** | Cấu hình, Quản trị Git, Task T3 & Tag Release | `main.py`, `.env`, `.gitignore` | Endpoint T3, Tag `v0.4-api`, link nộp LMS |
-| **TV2** | **Backend Dev 1** | Task T1 (`/v1/chat`) & Soạn thảo Reflection H2 | `main.py`, `schemas.py` | Endpoint T1, Bản thảo H2 (5 dòng) |
-| **TV3** | **Backend Dev 2** | Task T2 (`POST /v1/feedback`) & Validate Data | `main.py`, `schemas.py` | Endpoint T2, Test xác thực dữ liệu |
-| **TV4** | **Backend Dev 3** | Task T4 (`GET /v1/weather`) & Resilience Analysis | `main.py`, `weather.py` | Endpoint T4, Giải thích Exercise P16 |
-| **TV5** | **Backend Dev 4** | Homework H1 (`GET /v1/offices` + 2 tests) | `knowledge.py`, `main.py`, `test_api.py` | Hàm `all()`, route `/v1/offices`, 2 tests |
-| **TV6** | **QA & Bonus Lead** | Bonus Part F (Rate Limiter) & Automation Test | `ratelimit.py`, `main.py`, `test_api.py` | Rate limiter 429, pytest 24/24 pass |
-| **TV7** | **Docs & Manual Test** | Part E (curl, Postman), Hướng dẫn chụp ảnh & Docs | `curl_tests.sh`, `api_contract.md`, `external_api_failure.md` | Bộ test curl/Postman, 2 worksheets, ảnh `/docs` |
+| Thành viên | Vai trò | Trọng tâm công việc | Files liên quan | Sản phẩm bàn giao |
+|:---|:---|:---|:---|:---|
+| **Duy** (TV1) | **Tech Lead & Auth Lead** | Cấu hình, Quản trị Git, Task T3 & Tag Release | `main.py`, `.env`, `.gitignore` | Endpoint T3, Tag `v0.4-api`, link nộp LMS |
+| **Đạt** (TV2) | **Backend Dev 1** | Task T1 (`/v1/chat`) & Soạn thảo Reflection H2 | `main.py`, `schemas.py` | Endpoint T1, Bản thảo H2 (5 dòng) |
+| **Hùng** (TV3) | **Backend Dev 2** | Task T2 (`POST /v1/feedback`) & Validate Data | `main.py`, `schemas.py` | Endpoint T2, Test xác thực dữ liệu |
+| **Tâm** (TV4) | **Backend Dev 3** | Task T4 (`GET /v1/weather`) & Resilience Analysis | `main.py`, `weather.py` | Endpoint T4, Giải thích Exercise P16 |
+| **Trung Anh** (TV5) | **Backend Dev 4** | Homework H1 (`GET /v1/offices` + 2 tests) | `knowledge.py`, `main.py`, `test_api.py` | Hàm `all()`, route `/v1/offices`, 2 tests |
+| **Bội Anh** (TV6) | **QA & Bonus Lead** | Bonus Part F (Rate Limiter) & Automation Test | `ratelimit.py`, `main.py`, `test_api.py` | Rate limiter 429, pytest 24/24 pass |
+| **Quỳnh** (TV7) | **Docs & Manual Test** | Part E (curl, Postman), Hướng dẫn chụp ảnh & Docs | `curl_tests.sh`, `api_contract.md`, `external_api_failure.md` | Bộ test curl/Postman, 2 worksheets, ảnh `/docs` |
 
 ---
 
 ## 🛠️ 3. HƯỚNG DẪN CHI TIẾT TỪNG NHIỆM VỤ
 
-### 🧑‍💻 THÀNH VIÊN 1: Tech Lead, Auth & Release
+### 🧑‍💻 DUY (TV1): Tech Lead, Auth & Release
 1. **Thiết lập biến môi trường:**
    - Tạo file `.env` từ `.env.example`:
      ```bash
@@ -51,7 +51,7 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
        return feedback_store
    ```
 3. **Quy trình Git Release:**
-   - Sau khi các thành viên mở PR, Tech Lead tiến hành review, duyệt merge vào nhánh `main`.
+   - Sau khi các thành viên mở PR, Duy tiến hành review, duyệt merge vào nhánh `main`.
    - Tạo git tag phiên bản:
      ```bash
      git checkout main
@@ -63,12 +63,12 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
 
 ---
 
-### 🧑‍💻 THÀNH VIÊN 2: Core Chat & Reflection (H2)
+### 🧑‍💻 ĐẠT (TV2): Core Chat & Reflection (H2)
 1. **Hiện thực Task T1 (Mục D.3) trong `src/assistant_api/main.py`:**
    ```python
    @app.post("/v1/chat", response_model=ChatResponse, tags=["chat"], responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}})
    def chat(req: ChatRequest, request: Request) -> ChatResponse:
-       # TV6 sẽ thêm 3 dòng rate limit ở đầu hàm này sau
+       # Bội Anh sẽ thêm 3 dòng rate limit ở đầu hàm này sau
        resp = service.handle(Message(text=req.message, session_id=req.session_id))
        return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
    ```
@@ -77,7 +77,7 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
 
 ---
 
-### 🧑‍💻 THÀNH VIÊN 3: Feedback System & Validation
+### 🧑‍💻 HÙNG (TV3): Feedback System & Validation
 1. **Hiện thực Task T2 (Mục D.4) trong `src/assistant_api/main.py`:**
    ```python
    @app.post("/v1/feedback", response_model=FeedbackOut, status_code=201, tags=["feedback"])
@@ -92,7 +92,7 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
 
 ---
 
-### 🧑‍💻 THÀNH VIÊN 4: External Weather & Resilience
+### 🧑‍💻 TÂM (TV4): External Weather & Resilience
 1. **Hiện thực Task T4 (Mục D.6) trong `src/assistant_api/main.py`:**
    ```python
    @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
@@ -108,7 +108,7 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
 
 ---
 
-### 🧑‍💻 THÀNH VIÊN 5: Office Directory Feature (Homework H1 - 2 điểm)
+### 🧑‍💻 TRUNG ANH (TV5): Office Directory Feature (Homework H1 - 2 điểm)
 1. **Bước 1: Chỉnh sửa `src/assistant_core/knowledge.py`:**
    Trong class `OfficeDirectory`, bổ sung hàm `all()`:
    ```python
@@ -134,7 +134,7 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
 
 ---
 
-### 🧑‍💻 THÀNH VIÊN 6: Rate Limiting Bonus (+1 điểm) & Test Suite
+### 🧑‍💻 BỘI ANH (TV6): Rate Limiting Bonus (+1 điểm) & Test Suite
 1. **Hiện thực Bonus Part F trong `src/assistant_api/main.py`:**
    Chèn đoạn kiểm tra giới hạn request vào đầu hàm `chat()`:
    ```python
@@ -157,7 +157,7 @@ Các thành viên chỉ tập trung vào việc hiện thực hóa REST API trê
 
 ---
 
-### 🧑‍💻 THÀNH VIÊN 7: QA Testing, Docs & Worksheets
+### 🧑‍💻 QUỲNH (TV7): QA Testing, Docs & Worksheets
 1. **Kiểm thử với Script curl:**
    Khởi động server trên một terminal:
    ```bash
@@ -211,10 +211,10 @@ about: A unit of work for the sprint
 
 ### 📝 Danh sách 7 Issue mẫu sẵn sàng dùng:
 
-#### Issue cho TV1 (Admin Auth & Release):
+#### Issue cho Duy (Admin Auth & Release):
 * **Title:** `api: implement GET /v1/feedback admin endpoint and release tag (#01)`
 * **Labels:** `feat`, `backend`, `security`, `M4`
-* **Assignee:** `@TV1`
+* **Assignee:** `@Duy`
 * **Content:**
   ```markdown
   ## Goal
@@ -228,10 +228,10 @@ about: A unit of work for the sprint
   - [ ] Tag release `v0.4-api` được tạo sau khi tích hợp toàn bộ API.
   ```
 
-#### Issue cho TV2 (Chat Core Integration):
+#### Issue cho Đạt (Chat Core Integration):
 * **Title:** `api: implement POST /v1/chat endpoint (#02)`
 * **Labels:** `feat`, `backend`, `chat`, `M4`
-* **Assignee:** `@TV2`
+* **Assignee:** `@Đạt`
 * **Content:**
   ```markdown
   ## Goal
@@ -244,10 +244,10 @@ about: A unit of work for the sprint
   - [ ] Trả về 422 khi message rỗng hoặc không đúng định dạng.
   ```
 
-#### Issue cho TV3 (Feedback System):
+#### Issue cho Hùng (Feedback System):
 * **Title:** `api: implement POST /v1/feedback endpoint (#03)`
 * **Labels:** `feat`, `backend`, `feedback`, `M4`
-* **Assignee:** `@TV3`
+* **Assignee:** `@Hùng`
 * **Content:**
   ```markdown
   ## Goal
@@ -260,10 +260,10 @@ about: A unit of work for the sprint
   - [ ] Trả về 422 Unprocessable khi rating nằm ngoài {-1, 0, 1}.
   ```
 
-#### Issue cho TV4 (Weather Resilience):
+#### Issue cho Tâm (Weather Resilience):
 * **Title:** `api: implement GET /v1/weather endpoint with failure resilience (#04)`
 * **Labels:** `feat`, `backend`, `external`, `M4`
-* **Assignee:** `@TV4`
+* **Assignee:** `@Tâm`
 * **Content:**
   ```markdown
   ## Goal
@@ -275,10 +275,10 @@ about: A unit of work for the sprint
   - [ ] Vượt qua unit test mock mạng `test_weather_down_returns_503`.
   ```
 
-#### Issue cho TV5 (Offices Directory):
+#### Issue cho Trung Anh (Offices Directory):
 * **Title:** `api: add GET /v1/offices endpoint and OfficeDirectory.all() (#05)`
 * **Labels:** `feat`, `backend`, `knowledge`, `M4`
-* **Assignee:** `@TV5`
+* **Assignee:** `@TrungAnh`
 * **Content:**
   ```markdown
   ## Goal
@@ -290,10 +290,10 @@ about: A unit of work for the sprint
   - [ ] Bổ sung 2 bài tests trong `test_api.py` (kiểm tra status 200 và có phòng "Library").
   ```
 
-#### Issue cho TV6 (Rate Limiting & Pytest Suite):
+#### Issue cho Bội Anh (Rate Limiting & Pytest Suite):
 * **Title:** `perf: add IP-based rate limiting to /v1/chat and enable test (#06)`
 * **Labels:** `perf`, `security`, `bonus`, `M4`
-* **Assignee:** `@TV6`
+* **Assignee:** `@BộiAnh`
 * **Content:**
   ```markdown
   ## Goal
@@ -305,10 +305,10 @@ about: A unit of work for the sprint
   - [ ] Chạy `pytest -q` đạt kết quả 24/24 tests pass.
   ```
 
-#### Issue cho TV7 (QA, Docs & Evidence):
+#### Issue cho Quỳnh (QA, Docs & Evidence):
 * **Title:** `docs: complete worksheets, curl tests and review swagger screenshots (#07)`
 * **Labels:** `docs`, `test`, `qa`, `M4`
-* **Assignee:** `@TV7`
+* **Assignee:** `@Quỳnh`
 * **Content:**
   ```markdown
   ## Goal
@@ -381,8 +381,8 @@ Tạo file `AGENTS.md` ở root của repository nhóm để mọi AI Agent tự
 ### 6.2. Cách Prompt cho AI bằng cách tham chiếu `lab04_resource/guide.md`
 Khi nhờ AI sinh code hoặc giải thích, hãy dẫn link/mention file `guide.md` để AI bám sát thiết kế:
 
-**Mẫu Prompt chuẩn cho thành viên:**
-> *"Tôi đang làm việc trong dự án Study Assistant (môn CSC10014). Hãy đọc file `@lab04_resource/guide.md`. Tôi là **Thành viên [X]**, được phân công làm **Task [T1/T2/T3/T4/H1/Bonus]**.*
+**Mẫu Prompt chuẩn cho từng bạn:**
+> *"Tôi đang làm việc trong dự án Study Assistant (môn CSC10014). Hãy đọc file `@lab04_resource/guide.md`. Tôi là **[Duy / Đạt / Hùng / Tâm / Trung Anh / Bội Anh / Quỳnh]**, được phân công làm **[Task tương ứng trong bảng phân công]**.*
 > *Yêu cầu:*
 > 1. *Viết mã nguồn cho task này vào đúng file quy định.*
 > 2. *Giữ nguyên vẹn định dạng lỗi của hệ thống (`JSONResponse` với mã lỗi chuẩn).*
@@ -394,17 +394,18 @@ Theo quy định tại Chương 14 của giáo trình môn học, mỗi lần s�
 
 | Ngày | Thành viên | Công cụ | Yêu cầu đã giao cho AI | Phần tự chỉnh sửa / Giữ lại | Đã kiểm chứng qua |
 |:---:|:---:|:---:|:---|:---|:---|
-| 26/10 | TV2 | Copilot | Sinh endpoint `POST /v1/chat` | Tự bổ sung `uuid.hex[:12]` | 5 unit tests pass |
-| 26/10 | TV4 | Claude | Xử lý ngoại lệ `ExternalServiceError` | Bổ sung `from None` cho HTTPException | `test_api.py` pass |
-| 26/10 | TV5 | ChatGPT | Hàm `OfficeDirectory.all()` | Giữ nguyên logic `sorted` theo tên | 2 tests mới pass |
+| 26/10 | Đạt | Copilot | Sinh endpoint `POST /v1/chat` | Tự bổ sung `uuid.hex[:12]` | 5 unit tests pass |
+| 26/10 | Tâm | Claude | Xử lý ngoại lệ `ExternalServiceError` | Bổ sung `from None` cho HTTPException | `test_api.py` pass |
+| 26/10 | Trung Anh | ChatGPT | Hàm `OfficeDirectory.all()` | Giữ nguyên logic `sorted` theo tên | 2 tests mới pass |
+| 26/10 | Bội Anh | Cursor | Tích hợp RateLimiter | Kiểm tra IP và trả về HTTP 429 | `test_rate_limit` pass |
 
 ---
 
 ## 🏁 7. CHECKLIST HOÀN TẤT TRƯỚC KHI ĐÓNG SPRINT
 
-- [ ] Cả 7 thành viên đều đã mở Issue và gán Assignee đúng theo Bảng phân công.
+- [ ] Cả 7 thành viên (Duy, Đạt, Hùng, Tâm, Trung Anh, Bội Anh, Quỳnh) đều đã mở Issue và gán Assignee đúng theo Bảng phân công.
 - [ ] 7 thành viên đều đã mở Pull Request cá nhân, có ảnh chụp màn hình `/docs` và đoạn văn H2.
 - [ ] Các thành viên tiến hành Review chéo PR của nhau (dùng nhãn `Praise:`, `Question:`, `Suggestion:`).
 - [ ] Chạy `pytest -q` đạt kết quả tối đa **24 passed** (hoàn thành cả Bonus Rate Limiting).
-- [ ] Tech Lead duyệt merge tất cả các PR hợp lệ vào nhánh `main`.
-- [ ] Tech Lead gắn git tag **`v0.4-api`** và nộp đường dẫn tag/PR lên LMS đúng hạn.
+- [ ] Duy (Tech Lead) duyệt merge tất cả các PR hợp lệ vào nhánh `main`.
+- [ ] Duy (Tech Lead) gắn git tag **`v0.4-api`** và nộp đường dẫn tag/PR lên LMS đúng hạn.
