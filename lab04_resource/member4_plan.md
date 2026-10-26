@@ -1,70 +1,70 @@
-# KẾ HOẠCH HOÀN THÀNH NHIỆM VỤ THÀNH VIÊN 4 (BACKEND DEV 3)
-**Họ và tên:** Phạm Khánh Tâm  
-**Vai trò:** Thành viên 4 (TV4) — Backend Dev 3 (External Weather & Resilience)  
-**Dự án:** Study Assistant (`assistant_core` / `assistant_api`)  
-**Mã Issue:** `#04` (`api: implement GET /v1/weather endpoint with failure resilience (#04)`)  
-**Tên Branch:** `feat/04-weather-resilience`  
-**Mục tiêu điểm số:** 10/10 điểm chính thức + 1 điểm Bonus = **11/10 điểm**
+# EXECUTION PLAN FOR MEMBER 4 (BACKEND DEV 3)
+**Name:** Pham Khanh Tam  
+**Role:** Member 4 (TV4) — Backend Dev 3 (External Weather & Resilience)  
+**Project:** Study Assistant (`assistant_core` / `assistant_api`)  
+**Issue:** `#04` (`api: implement GET /v1/weather endpoint with failure resilience (#04)`)  
+**Branch:** `feat/04-weather-resilience`  
+**Target Grade:** 10/10 official + 1 bonus point = **11/10**
 
 ---
 
-## 🎯 I. MỤC TIÊU VÀ TRÁCH NHIỆM CHÍNH
+## 1. Primary Objectives and Responsibilities
 
-Thành viên 4 (Tâm) phụ trách tích hợp dịch vụ thời tiết bên ngoài với cơ chế chịu lỗi (Fault Tolerance & Resilience):
-1. **Nhiệm vụ Lập trình (Task T4 - Mục D.6)**:
-   - Hiện thực endpoint `GET /v1/weather` kết nối với `WeatherClient`.
-   - Xử lý ngoại lệ `ExternalServiceError` để chuyển đổi sạch sẽ thành HTTP status code `503 Service Unavailable`.
-   - Tuân thủ cấu trúc schema phản hồi `Weather` và `ErrorResponse`.
-2. **Nhiệm vụ Phân tích Khả năng Phục hồi (Resilience Analysis - Trang 16)**:
-   - Phân tích và trả lời câu hỏi Exercise trang 16 của tài liệu Lab 4 về cách mock lỗi mạng trong unit test `test_weather_down_returns_503`.
-   - Làm rõ 3 thói quen chịu lỗi của `WeatherClient`: Timeout (3s), Retry (thử lại khi thất bại), và Backup Plan (sử dụng cache đánh dấu `stale=True`).
-3. **Nhiệm vụ Kiểm thử & Bằng chứng PR (Testing & Evidence)**:
-   - Chạy kiểm thử tự động pytest: đạt 100% các test liên quan đến thời tiết (`test_weather_ok`, `test_weather_down_returns_503`, `test_weather_stale_cache_when_upstream_fails`).
-   - Chụp ảnh minh chứng Swagger UI (`/docs`) khi gọi `/v1/chat` thành công.
-   - Soạn thảo đoạn văn Reflection H2 (5 dòng) và ghi nhật ký sử dụng AI vào `docs/ai-use-log.md`.
-   - Mở Pull Request cá nhân trên GitHub theo đúng mẫu quy định.
+Member 4 (Tam) is responsible for integrating the external weather service with fault tolerance and resilience mechanisms:
+1. **Implementation Deliverables (Task T4 - Section D.6)**:
+   - Implement the `GET /v1/weather` endpoint connected to `WeatherClient`.
+   - Catch `ExternalServiceError` and translate it into a clean HTTP 503 Service Unavailable status code.
+   - Strictly adhere to the `Weather` and `ErrorResponse` schemas.
+2. **Resilience Analysis Deliverables (Exercise Page 16)**:
+   - Analyze and answer the Page 16 exercise question regarding how mock network failures are simulated in `test_weather_down_returns_503`.
+   - Document the three resilience habits of `WeatherClient`: Timeout (3s), Retry (exponential / immediate retry on failure), and Backup Plan (stale in-memory cache marked `stale=True`).
+3. **Testing and PR Evidence**:
+   - Run automated pytest suite: achieve 100% pass on weather-related tests (`test_weather_ok`, `test_weather_down_returns_503`, `test_weather_stale_cache_when_upstream_fails`).
+   - Capture required Swagger UI (`/docs`) screenshot when invoking `/v1/chat`.
+   - Provide the 5-line Reflection (H2) and log AI usage in `docs/ai-use-log.md`.
+   - Open individual Pull Request following the project template.
 
 ---
 
-## 📅 II. LỘ TRÌNH THỰC HIỆN CHI TIẾT (STEP-BY-STEP)
+## 2. Step-by-Step Execution Plan
 
 ```
-[Giai đoạn 1: Khởi tạo Issue #04 & Branch] ──> [Giai đoạn 2: Lập trình Task T4] ──> [Giai đoạn 3: Phân tích Exercise P16]
-                                                                                               │
-[Giai đoạn 6: Phối hợp Review & Merge] <──── [Giai đoạn 5: Mở Pull Request] <──── [Giai đoạn 4: Kiểm thử Pytest & /docs]
+[Phase 1: Issue #04 & Branch Creation] ──> [Phase 2: Implement Task T4] ──> [Phase 3: Resilience Analysis (P16)]
+                                                                                             │
+[Phase 6: Peer Review & Handoff] <───── [Phase 5: Open Individual PR] <──── [Phase 4: Pytest & Swagger UI]
 ```
 
 ---
 
-### 🔹 GIAI ĐOẠN 1: KHỞI TẠO ISSUE #04 & BRANCH LÀM VIỆC (Thời gian: 10 phút)
+### Phase 1: Issue #04 and Branch Creation
 
-1. **Khởi tạo Issue trên GitHub:**
+1. **Create Issue on GitHub:**
    - **Title:** `api: implement GET /v1/weather endpoint with failure resilience (#04)`
    - **Labels:** `feat`, `backend`, `external`, `M4`
    - **Assignee:** `@AI-WFox`
-   - **Nội dung:**
+   - **Body:**
      ```markdown
      ## Goal
-     Cung cấp thời tiết cơ sở Nguyễn Văn Cừ qua GET /v1/weather, xử lý sự cố dịch vụ bên ngoài.
+     Provide campus weather information for Nguyen Van Cu campus via GET /v1/weather with graceful external service failure resilience.
 
      ## Acceptance criteria
-     - [ ] Gọi WeatherClient lấy thời tiết với timeout 3s, retry và cache fallback.
-     - [ ] Bắt ngoại lệ ExternalServiceError và trả về mã sạch HTTP 503.
-     - [ ] Vượt qua unit test mock mạng `test_weather_down_returns_503`.
+     - [x] Query WeatherClient for current weather with 3s timeout, retry loop, and stale cache fallback.
+     - [x] Catch ExternalServiceError and return clean HTTP 503 Service Unavailable.
+     - [x] Pass mock network failure unit test `test_weather_down_returns_503`.
      ```
-2. **Tạo nhánh làm việc:**
-   - Nhánh xuất phát từ `origin/docs/lab04-guide`:
+2. **Create Working Branch:**
+   - Branch created off `origin/docs/lab04-guide`:
      ```bash
      git checkout -b feat/04-weather-resilience origin/docs/lab04-guide
      ```
 
 ---
 
-### 🔹 GIAI ĐOẠN 2: LẬP TRÌNH TASK T4 (MỤC D.6) (Thời gian: 15 phút)
+### Phase 2: Implement Task T4 (Section D.6)
 
-1. **Vị trí file:** `lab04_resource/starter/src/assistant_api/main.py`
-2. **Hiện thực code:**
-   Thay thế đoạn `raise NotImplementedError("T4")` trong hàm `campus_weather()` bằng khối lệnh xử lý an toàn:
+1. **File Location:** `lab04_resource/starter/src/assistant_api/main.py`
+2. **Implementation:**
+   Replace `raise NotImplementedError("T4")` inside `campus_weather()` with resilient error handling:
    ```python
    @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
    def campus_weather() -> Weather:
@@ -73,71 +73,71 @@ Thành viên 4 (Tâm) phụ trách tích hợp dịch vụ thời tiết bên ng
        except ExternalServiceError:
            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Weather service unavailable") from None
    ```
-3. **Giải thích kiến trúc kỹ thuật:**
-   - `weather.current()`: Gọi client thời tiết để truy vấn API Open-Meteo tại tọa độ cơ sở Nguyễn Văn Cừ (`campus_lat`, `campus_lon`).
-   - `except ExternalServiceError:`: Khi dịch vụ bên ngoài gặp sự cố mạng (ConnectTimeout, ReadTimeout hoặc HTTP 5xx kéo dài qua hết các lượt retry), client ném ngoại lệ miền `ExternalServiceError`.
-   - `raise HTTPException(...) from None`: Chuyển đổi ngoại lệ nội bộ thành mã lỗi chuẩn HTTP 503, đồng thời ẩn traceback gốc (`from None`) để không làm rò rỉ chi tiết hệ thống ra ngoài.
+3. **Technical Architecture Explanation:**
+   - `weather.current()`: Queries Open-Meteo API using campus coordinates (`campus_lat`, `campus_lon`).
+   - `except ExternalServiceError:`: When upstream services encounter persistent timeouts or HTTP 5xx errors across all retries, the client raises `ExternalServiceError`.
+   - `raise HTTPException(...) from None`: Translates the internal exception to standard HTTP 503 while suppressing internal tracebacks via `from None`.
 
 ---
 
-### 🔹 GIAI ĐOẠN 3: PHÂN TÍCH KHẢ NĂNG CHỊU LỖI (EXERCISE TRANG 16) (Thời gian: 15 phút)
+### Phase 3: Resilience Analysis (Exercise Page 16)
 
-1. **Câu hỏi bài tập (Tutorial Page 16):**
-   * *Đọc `test_weather_down_returns_503` trong `tests/test_api.py`. Hãy giải thích trong 1 câu cách test giả lập tình huống server thời tiết sập.*
-2. **Câu trả lời chuẩn:**
-   > *"Test sử dụng fixture `weather_with(...)` kết hợp cùng `httpx.MockTransport` để chặn toàn bộ kết nối mạng thật và chủ động ném ngoại lệ `httpx.ConnectTimeout` (hoặc HTTP 500) ngay khi nhận request, từ đó xác minh endpoint `/v1/weather` có bắt đúng lỗi và trả về mã lỗi HTTP 503 với error code `weather_service_unavailable` hay không."*
-3. **Ba thói quen chịu lỗi (3 Resilience Habits) được áp dụng:**
-   - **Timeout (Chờ tối đa 3 giây):** Khởi tạo `httpx.Client(timeout=3)` tránh việc treo server khi dịch vụ thứ ba phản hồi chậm.
-   - **Retry (Thử lại nếu lỗi):** Sử dụng vòng lặp retry ngắn để vượt qua các lỗi mạng chập chờn nhất thời.
-   - **Backup Plan (Dùng dữ liệu cũ khi sập):** Lưu kết quả gần nhất vào cache trong bộ nhớ; khi API bên ngoài sập hoàn toàn thì trả về thời tiết đã lưu và đánh dấu cờ `stale=True`.
+1. **Exercise Question (Tutorial Page 16):**
+   * *Open `tests/test_api.py` and read `test_weather_down_returns_503`. In one sentence, explain how it pretends the weather site is down.*
+2. **Standard Answer:**
+   > *"The test uses the `weather_with(...)` fixture with an `httpx.MockTransport` handler that intercepts outgoing network requests and raises `httpx.ConnectTimeout` (or HTTP 500) directly, verifying that `/v1/weather` catches the resulting `ExternalServiceError` and translates it into an HTTP 503 response with error code `weather_service_unavailable`."*
+3. **Three Resilience Habits Applied:**
+   - **Timeout (Wait at most 3 seconds):** Configures `httpx.Client(timeout=3)` to avoid blocking the server event loop on slow upstream responses.
+   - **Retry (If it fails, try once more):** Employs a retry loop to recover from transient network glitches.
+   - **Backup Plan (Serve stale cache when down):** Retains last-known weather data in memory and returns it with `stale=True` when upstream is completely unreachable.
 
 ---
 
-### 🔹 GIAI ĐOẠN 4: KIỂM THỬ VỚI PYTEST & SWAGGER UI (Thời gian: 20 phút)
+### Phase 4: Verification with Pytest and Swagger UI
 
-1. **Chạy kiểm thử tự động với Pytest:**
+1. **Automated Pytest Execution:**
    ```bash
    pytest lab04_resource/starter/tests/test_api.py -k "weather" -v
    ```
-   *Kết quả mong đợi:* Cả 3 test case đều đạt màu xanh (**PASSED**):
-   - `test_weather_ok`: Kiểm tra trường hợp thời tiết bình thường trả về HTTP 200 và mô tả `overcast`.
-   - `test_weather_down_returns_503`: Kiểm tra khi upstream timeout thì endpoint trả về HTTP 503.
-   - `test_weather_stale_cache_when_upstream_fails`: Kiểm tra cơ chế lấy cache cũ `stale=True`.
+   *Expected Result:* All 3 test cases pass (**PASSED**):
+   - `test_weather_ok`: Verifies standard HTTP 200 response with `overcast` condition.
+   - `test_weather_down_returns_503`: Verifies HTTP 503 response when upstream service times out.
+   - `test_weather_stale_cache_when_upstream_fails`: Verifies fallback to cached data marked with `stale=True`.
 
-2. **Chụp ảnh Swagger UI (`/docs`) làm minh chứng bắt buộc:**
-   - Khởi động server API:
+2. **Swagger UI (`/docs`) Verification:**
+   - Launch application server:
      ```bash
      cd lab04_resource/starter
      uvicorn assistant_api.main:create_app --factory --reload
      ```
-   - Mở trình duyệt tại `http://127.0.0.1:8000/docs`.
-   - Tìm đến `POST /v1/chat` -> Chọn **Try it out** -> Nhập message -> **Execute**.
-   - Chụp ảnh màn hình thấy rõ kết quả phản hồi HTTP 200 và `request_id`.
+   - Navigate to `http://127.0.0.1:8000/docs`.
+   - Test `POST /v1/chat` -> **Try it out** -> Send message -> **Execute**.
+   - Capture screenshot showing HTTP 200 response and generated `request_id`.
 
 ---
 
-### 🔹 GIAI ĐOẠN 5: MỞ PULL REQUEST CÁ NHÂN (Thời gian: 15 phút)
+### Phase 5: Individual Pull Request
 
-1. **Commit và đẩy code lên GitHub:**
+1. **Commit and Push Changes:**
    ```bash
-   git add lab04_resource/starter/src/assistant_api/main.py lab04_resource/member4_plan.md
+   git add lab04_resource/starter/src/assistant_api/main.py lab04_resource/member4_plan.md docs/ai-use-log.md
    git commit -m "feat(weather): implement GET /v1/weather endpoint with failure resilience (#04)"
    git push -u origin feat/04-weather-resilience
    ```
-2. **Nội dung PR Template chuẩn:**
-   - **What:** Hiện thực endpoint `GET /v1/weather` kết nối `WeatherClient`, xử lý ngoại lệ `ExternalServiceError` trả về HTTP 503 chuẩn.
-   - **Why:** Hoàn thành Task T4 theo phân công của môn học CSC10014 Lab 4.
-   - **Reflection H2 (Bắt buộc 5 dòng):**
-     > *"Ở Lab 3, việc gọi trực tiếp `service.handle()` là lời gọi hàm nội bộ (in-process function call), đòi hỏi client và server phải viết chung một ngôn ngữ Python và chạy trên cùng một máy tính. Sang Lab 4, việc bọc qua giao thức HTTP REST API (`POST /v1/chat`) cho phép tách rời hoàn toàn giữa client và backend. Nhờ đó, giao diện web, ứng dụng di động hay các dịch vụ khác có thể giao tiếp dễ dàng qua định dạng chuẩn JSON mà không phụ thuộc vào công nghệ của nhau. Đối với làm việc nhóm, kiến trúc này giúp phân tách trách nhiệm rõ ràng: team frontend và team backend có thể phát triển độc lập dựa trên API contract đã thống nhất từ trước mà không làm ảnh hưởng đến mã nguồn của nhau."*
+2. **PR Content:**
+   - **What:** Implement `GET /v1/weather` endpoint connected to `WeatherClient` with graceful failure handling.
+   - **Why:** Closes #20. Completes Task T4 according to CSC10014 Lab 4 specifications.
+   - **Reflection H2 (5 lines):**
+     > *"In Lab 3, calling `service.handle()` was an in-process function call, requiring both client and server to be written in Python and executed on the same machine. In Lab 4, wrapping the service behind an HTTP REST API (`POST /v1/chat`) completely decouples the client from the backend implementation. This allows diverse frontends—such as web browsers, mobile applications, or external services—to exchange data seamlessly via JSON without language or platform dependency. For team collaboration, this architecture establishes clear separation of concerns, enabling frontend and backend teams to develop independently against an agreed API contract without conflicting changes to each other's codebases."*
    - **AI Use:**
-     - Công cụ sử dụng: Google Antigravity IDE (Gemini).
-     - Yêu cầu: Hiện thực Task T4 theo `lab04_resource/guide.md`, bọc try/except `ExternalServiceError` thành HTTP 503.
-     - Tự kiểm chứng: Chạy bộ test pytest 3/3 passed, kiểm tra linter Ruff.
+     - Tool: Google Antigravity IDE (Gemini).
+     - Task: Generate Task T4 implementation wrapping `weather.current()` with `ExternalServiceError` handling to HTTP 503.
+     - Verification: Passed all 3 weather unit tests, confirmed clean Ruff linting.
 
 ---
 
-### 🔹 GIAI ĐOẠN 6: PHỐI HỢP REVIEW CHÉO & BÀN GIAO CHO TECH LEAD
+### Phase 6: Peer Review and Handoff to Tech Lead
 
-- Gán reviewer theo vòng xoay review của nhóm.
-- Đảm bảo CI GitHub Actions trên PR báo xanh toàn bộ.
-- Bàn giao nhánh cho Tech Lead (Duy) để tiến hành squash-merge vào nhánh `main` khi tích hợp toàn bộ API.
+- Assign peer reviewers per team rotation.
+- Ensure all CI checks are green on the PR.
+- Handoff branch to Tech Lead (Duy) for squash-merging into `main` during API integration.
