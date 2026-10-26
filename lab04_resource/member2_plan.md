@@ -26,7 +26,9 @@ Thành viên 2 (Trương Thành Đạt) đảm nhận vai trò Backend Dev 1, ph
    - Chạy kiểm thử tự động với Pytest: Đảm bảo 100% test cases liên quan đến `/v1/chat` (`test_chat_fee`, `test_chat_validation_error`) đều PASS.
    - Chạy máy chủ Uvicorn cục bộ, thực thi request tương tác trên Swagger UI (`/docs`), chụp ảnh màn hình minh chứng HTTP 200 OK và `request_id` để đính kèm vào PR.
 4. **Nhiệm vụ Review Chéo ("Người đứng trên review người đứng dưới")**:
-   - Theo phân công bảng Lab 04 (TV2 đứng trên TV3): Tiến hành review PR của **Nguyễn Đình Hùng (`@benalexx007` - TV3)** về `POST /v1/feedback`.
+   - Vòng xoay phân công của nhóm: `Quỳnh -> Bội Anh -> Philip -> Tâm -> Ben -> Đạt -> Duy -> Quỳnh`.
+   - **Người review cho Đạt**: **Ben (`@benalexx007` - Nguyễn Đình Hùng)** đứng trực tiếp phía trước Đạt trong chuỗi xoay vòng.
+   - **Người Đạt sẽ review**: **Duy (`@johannguyen015` - Nguyễn Bá Duy / Johannguyen)** đứng trực tiếp phía sau Đạt trong chuỗi xoay vòng (Task T3: `GET /v1/feedback` admin endpoint).
    - Áp dụng cấu trúc phản biện 3 phần chuẩn mực: `Praise:`, `Question:`, `Suggestion:`.
 
 ---
@@ -105,9 +107,9 @@ Thành viên 2 (Trương Thành Đạt) đảm nhận vai trò Backend Dev 1, ph
 - [x] Điền đầy đủ PR Description theo template chuẩn (What, Why, How tested, Evidence, AI use, Reflection H2, Checklist).
 - [x] Thông báo cho Tech Lead (Duy) để ưu tiên merge PR này đầu tiên (Merge #1), cung cấp nền tảng cho TV6 gắn Rate Limiting và TV7 viết tài liệu.
 
-### Giai đoạn 6: Thực hiện Peer Review
-- [x] Đợi PR của TV3 (Nguyễn Đình Hùng — Task T2: `POST /v1/feedback`).
-- [x] Kiểm tra kỹ validation logic (`rating` trong khoảng `[-1, 1]` hoặc `[1, 5]`, mã trạng thái `201 Created`).
+### Giai đoạn 6: Thực hiện Peer Review cho Duy (Johannguyen)
+- [x] Đợi PR của Duy (`@johannguyen015` — Tech Lead / TV1, Task T3: `GET /v1/feedback` admin endpoint).
+- [x] Kiểm tra kỹ cơ chế xác thực Admin qua header `X-API-Key` (dùng `require_admin` dependency), xử lý bảo mật biến môi trường và định dạng danh sách `FeedbackOut`.
 - [x] Gửi review `APPROVE` theo chuẩn 3 phần: `Praise:`, `Question:`, `Suggestion:`.
 
 ---
