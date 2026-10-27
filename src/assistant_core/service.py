@@ -151,6 +151,7 @@ class AssistantService:
         self.settings = settings
         self.router = router or self._resolve_router()
         self.office_directory = office_directory or self._resolve_office_directory()
+        self.offices = self.office_directory
         self.handbook = handbook or self._resolve_handbook()
         self.responder = responder or self._resolve_responder()
         self.fallback_responder = fallback_responder or _DefaultTemplateResponder()
@@ -286,7 +287,7 @@ class AssistantService:
                 retake_multiplier=self.retake_multiplier,
                 max_credits=self.max_credits,
             )
-            return Response(answer=f"Your tuition is {total} VND", intent=Intent.FEE)
+            return Response(answer=f"Your tuition is {total:,} VND.", intent=Intent.FEE)
         except (InvalidRequest, ValueError):
             return Response(answer="too many credits", intent=Intent.FEE)
 
@@ -405,3 +406,22 @@ class AssistantService:
         if best and best_score >= 1:
             return best
         return None
+
+
+def build_service(settings: Any | None = None) -> AssistantService:
+    from assistant_core.config import Settings, load_settings
+    from assistant_core.knowledge import Handbook, OfficeDirectory
+    from assistant_core.responder import make_responder
+
+    settings = settings or load_settings()
+    d = getattr(settings, "data_dir", Path("data"))
+    offices = OfficeDirectory.from_csv(d / "offices.csv")
+    handbook = Handbook.from_json(d / "handbook.json")
+    responder = make_responder(getattr(settings, "llm_provider", "stub"))
+    return AssistantService(
+        settings=settings,
+        office_directory=offices,
+        handbook=handbook,
+        responder=responder,
+    )
+

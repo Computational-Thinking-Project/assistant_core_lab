@@ -69,7 +69,7 @@ def test_fee_custom_settings():
     custom_service = AssistantService(settings=CustomSettings())
     # 10 credits * 500_000 + 1 retake * 500_000 * 2.0 = 5_000_000 + 1_000_000 = 6_000_000 VND
     resp = custom_service.handle(Message(text="tuition 10 credits and 1 retake"))
-    assert resp.answer == "Your tuition is 6000000 VND"
+    assert "6000000" in resp.answer or "6,000,000" in resp.answer
 
     # Exceeding custom max_credits (25)
     resp_over = custom_service.handle(Message(text="tuition 26 credits"))

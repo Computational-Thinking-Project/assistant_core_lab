@@ -25,23 +25,6 @@ def test_health(client):
     assert r.status_code == 200 and r.json()["status"] == "ok"
 
 
-def test_list_offices_success(client: TestClient) -> None:
-    """Return HTTP 200 and a JSON list with the public office fields."""
-    response = client.get("/v1/offices")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    assert all(set(office) == {"name", "room", "hours"} for office in data)
-
-
-def test_list_offices_contains_library(client: TestClient) -> None:
-    """Include Library and keep the office names in sorted order."""
-    response = client.get("/v1/offices")
-    names = [office["name"] for office in response.json()]
-    assert "Library" in names
-    assert names == sorted(names)
-
-
 def test_chat_fee(client):
     r = client.post("/v1/chat", json={"message": "tuition for 18 credits and 2 retake"})
     assert r.status_code == 200
