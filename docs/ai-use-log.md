@@ -9,6 +9,7 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-10-26 | Tâm (@AI-WFox) | Antigravity (Gemini) | Implement GET /v1/weather endpoint with failure resilience (Task T4) | Handled ExternalServiceError gracefully with HTTP 503 and `from None` suppression; verified with unit tests and mock transports. |
 | 2026-10-26 | Trung Anh (@philip-kkk) | Codex | Implement Lab04 H1 office listing for issue #22 using `lab04_resource/guide.md` | Generated `OfficeDirectory.all()`, `GET /v1/offices`, and two API tests. Kept changes within the three assigned starter files and preserved existing tests. Verification and integration limits are recorded below. |
 | 2026-10-27 | Trung Anh (@philip-kkk) | Codex | Update draft PR #23 after Lab04 API moved to the repository root | Resolved merge conflicts against main, moved H1 code and its two tests into root src/tests, preserved other members' endpoints and log entries, and captured actual Swagger chat/offices responses. |
+| 2026-10-27 | Bội Anh (@htbaax) | Antigravity (Gemini) | Bonus Part F: Rate Limiter for /v1/chat & enable test | Implemented IP-based client rate limiting in `POST /v1/chat` raising HTTP 429 Too Many Requests when exceeding limit, unskipped test_rate_limit, and verified with pytest. |
 
 ## Lab04 H1 - Office listing (issue #22)
 
