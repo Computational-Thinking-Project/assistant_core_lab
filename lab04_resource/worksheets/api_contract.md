@@ -1,16 +1,113 @@
 # Lab 4 — API contract worksheet
 
-Fill in one row per endpoint **before** you code it.
+Owner: Nhat Quynh (Member 7).
+Tracking issue: [#31](https://github.com/Computational-Thinking-Project/assistant_core_lab/issues/31).
+
+Integrated API verified on **2026-10-27** at revision
+`b98fd4c300379d54aecb1ece5e2a351c1b97a315`, using the repository-root
+`src/assistant_api` package and course data. The root suite reported **98 passed**;
+the root curl script with offices and bonus reported **14 passed, 0 failed**.
+Detailed commands, evidence and verification limits are in the
+[QA report](../../docs/lab04_qa_report.md).
+
+Sources reviewed:
+
+- [Integrated API](https://github.com/Computational-Thinking-Project/assistant_core_lab/tree/b98fd4c300379d54aecb1ece5e2a351c1b97a315/src/assistant_api) and [API tests](https://github.com/Computational-Thinking-Project/assistant_core_lab/blob/b98fd4c300379d54aecb1ece5e2a351c1b97a315/tests/test_api.py): current implementation and integrated verification target.
+- [Lab04 guide and worksheet](https://github.com/Computational-Thinking-Project/assistant_core_lab/tree/3adb5fdc45a559fc207b2406f00a950e1e9f91f6/lab04_resource): expected tasks and worksheet structure.
+- [PR #28](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/28), revision `33820e361daa84e4e9b0255b786a067025172adb`: API at the repository root, schemas, validation and admin authentication.
+- [PR #23](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/23), revision `f6a8c65bd3921858af48e671be443479aaeefae1`: offices implementation in the starter.
+
+The table below describes the v1 contract of that integrated revision. Field
+limits and defaults were checked against the schemas; executed cases are listed
+in the verification section. The older guide/PR references document the design
+history, not outstanding integration work.
 
 | Method | Path | Request body / params | Success (code + body) | Errors (code + error.code) | Who calls it |
 |---|---|---|---|---|---|
-| GET | /health | — | 200 {status, version} | — | ops, UI |
-| POST | /v1/chat | | | | UI, tests |
-| POST | /v1/feedback | | | | UI |
-| GET | /v1/feedback | header X-API-Key | | | staff dashboard |
-| GET | /v1/weather | — | | | UI |
+| GET | `/health` | No body | 200 `{status: "ok", version: string}` | No endpoint-specific error | Operations, UI, smoke checks |
+| POST | `/v1/chat` | JSON: required `message` string, 1–2000 characters; optional `session_id` string, at most 64 characters, default `"anonymous"` | 200 `{answer: string, intent: string, sources: [{id, title}], degraded: boolean, request_id: string}`; generated request ID is 12 hexadecimal characters | 422 `invalid_request`; bonus: 429 `too_many_requests` | UI, API clients, tests |
+| POST | `/v1/feedback` | JSON: required `request_id` string, 1–64 characters; required `rating` integer in `{-1, 0, 1}`; optional nullable `comment` string, at most 500 characters | 201: submitted fields plus increasing integer `id` and UTC ISO-8601 `created_at` | 422 `invalid_request` | UI, API clients |
+| GET | `/v1/feedback` | Required `X-API-Key` header matching the server's `API_ADMIN_KEY` | 200: array of feedback objects, including `[]` when empty | 401 `missing_or_invalid_api_key` | Staff dashboard, QA |
+| GET | `/v1/weather` | No body; campus coordinates configured on the server | 200 `{temperature_c: number, wind_kmh: number, description: string, observed_at: string, stale: boolean}` | 503 `weather_service_unavailable` after retries fail and no cached value exists | UI, API clients |
+| GET | `/v1/offices` | No body | 200: array of `{name: string, room: string, hours: string}`, sorted by `name`; `[]` is valid for an empty directory | No endpoint-specific error declared | UI, API clients, tests |
 
-Questions:
-1. Which fields are required, and what are their limits?
-2. What does the UI show for each error code?
-3. What changes would force a `/v2`?
+Application validation and declared HTTP errors use
+`{"error": {"code": "...", "message": "..."}}`. Inspect the actual body as well
+as the status. A missing route may use the framework's `{"detail":"Not Found"}`
+body; do not assume the custom error handler also handles framework 404s.
+
+## 1. Which fields are required, and what are their limits?
+
+- Chat requires `message`. A missing, empty, overlong or non-string message is
+  invalid. `session_id` is optional; an empty string is allowed by the reference
+  schema, but `null` is not. Whitespace-only messages are not explicitly stripped
+  or rejected by that schema.
+- Feedback requires `request_id` and `rating`. `comment` defaults to `null`.
+  The reference uses Pydantic's normal coercion, not strict integer validation;
+  this worksheet specifies the intended JSON inputs rather than promising that
+  every coercible value is rejected.
+- `X-API-Key` is required only for reading feedback. An unset server admin key
+  denies access even if a header is supplied. Use a local test key; never include
+  real keys in screenshots, reports or commits.
+- `request_id` on chat responses is generated by the API. The feedback schema
+  checks its length but does not check whether it refers to a real chat.
+  Manual checks should reuse a successful chat request ID for the roundtrip.
+- Feedback is stored in memory for the lifetime of one application instance.
+  IDs and stored feedback reset when that instance restarts.
+- Chat intents in the reference are `greeting`, `fee`, `office`, `rule`, and
+  `unknown`. A degraded response still returns 200; clients should inspect
+  `degraded` and any sources.
+- Offices must contain Library with the supplied course data. An intentionally
+  empty custom directory may return an empty array.
+
+## 2. What does the UI show for each error code?
+
+These are proposed UI behaviours; this task does not implement a frontend.
+
+| Status / code | Proposed UI response |
+|---|---|
+| 422 / `invalid_request` | Show the validation message beside the relevant field and let the user correct it. |
+| 401 / `missing_or_invalid_api_key` | Deny access to the staff view and request valid credentials without displaying the key. |
+| 429 / `too_many_requests` | Ask the user to wait before retrying; do not promise a Retry-After header that the starter does not provide. |
+| 503 / `weather_service_unavailable` | Explain that weather is temporarily unavailable; leave other assistant features usable. |
+| 404 | Show that the requested resource/path does not exist; do not keep retrying the same unknown URL. |
+| Network failure or unexpected 5xx | Show a temporary service problem and offer a controlled retry. Do not expose server tracebacks. |
+| 200 with `stale: true` | Display the cached weather and its `observed_at` time with an out-of-date indicator. |
+| 200 with `degraded: true` | Display the usable answer with a fallback indicator. |
+
+## 3. What changes would force a `/v2`?
+
+Breaking changes include renaming/removing response fields, changing their types,
+changing a list response into an object, adding a required request field without
+a default, removing accepted rating/intent values, or changing existing status
+and error semantics relied on by clients. Such changes require a versioned
+contract or an explicitly managed migration. Adding an optional field or a new
+endpoint is usually compatible, provided existing clients tolerate extra fields.
+
+## Integrated verification and limits
+
+The following results apply to the pinned integrated revision, not future
+updates. The curl run used a fresh local server and a quota of 8 to test the
+boundary within one minute; the configured default remains 30 per minute.
+
+| Feature | Status | Executed verification |
+|---|---|---|
+| `GET /health` | Pass | HTTP 200 with valid status/version. |
+| `POST /v1/chat` | Pass | Fee and cited-rule responses; generated request IDs; empty/numeric message rejected with 422. |
+| `POST /v1/feedback` | Pass | HTTP 201 using a real chat request ID, matching rating/comment, positive integer ID and UTC time; rating 7 rejected with 422. |
+| `GET /v1/feedback` | Pass | Missing/wrong key returned 401; valid key returned 200 with the created object present exactly once and matching all fields. |
+| `GET /v1/weather` | Pass | Live upstream returned 200; injected timeout, 500, missing JSON fields and upstream 429 produced clean 503 without cache and stale 200 with expired cache. |
+| `GET /v1/offices` | Pass | HTTP 200, expected string fields, Library present and names sorted. |
+| Chat rate limiting | Pass | Valid requests through the test quota succeeded; request 9 returned 429 with `too_many_requests` for quota 8. |
+
+The full suite includes the existing API tests. It does not establish that every
+possible input boundary or malformed upstream structure has been exercised.
+For example, the additional `current: null` weather probe still returns 500;
+this is a known robustness limitation outside the four worksheet failure cases.
+Proposed UI behaviour above is documentation, not an implemented frontend.
+
+Historically, the early PR #28 snapshot lacked T2/T4/offices/bonus. Those findings
+are retained in the QA report as history and are resolved in the integrated
+revision tested here. The TV7 curl entry point is now `api-tests/curl_tests.sh`
+at the repository root. No application logic or existing Python tests were
+changed as part of this worksheet.
