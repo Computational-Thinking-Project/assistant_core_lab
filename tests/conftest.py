@@ -105,3 +105,13 @@ def custom_responder():
 def service():
     """Provide an AssistantService instance configured with default characterisation data."""
     return AssistantService()
+
+
+@pytest.fixture
+def settings():
+    """Provide a Settings instance for test fixtures."""
+    data_dir = Path(__file__).resolve().parents[1] / "data"
+    if Settings is not None:
+        return Settings(data_dir=data_dir)
+    return MockSettings(data_dir=data_dir)
+
