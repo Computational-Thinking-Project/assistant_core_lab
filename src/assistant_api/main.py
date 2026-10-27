@@ -1,6 +1,7 @@
 """FastAPI application — Lab 4.  Run:  uvicorn assistant_api.main:create_app --factory --reload
 
-Endpoints (v1): GET /health, POST /v1/chat, POST /v1/feedback, GET /v1/feedback (admin), GET /v1/weather
+Endpoints (v1): GET /health, GET /v1/offices, POST /v1/chat, POST /v1/feedback,
+GET /v1/feedback (admin), GET /v1/weather
 """
 
 from __future__ import annotations
@@ -55,6 +56,11 @@ def create_app(
     def health() -> dict:
         return {"status": "ok", "version": app.version}
 
+    @app.get("/v1/offices", tags=["knowledge"])
+    def list_offices() -> list[dict[str, str]]:
+        """Return all offices sorted by name."""
+        return [office.__dict__ for office in service.offices.all()]
+
     @app.post(
         "/v1/chat",
         response_model=ChatResponse,
@@ -84,9 +90,9 @@ def create_app(
 
     @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
     def campus_weather() -> Weather:
-        # TODO T4 (4 lines): call weather.current() inside try/except.
-        #   If ExternalServiceError happens, raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
-        #   "Weather service unavailable") from None
-        raise NotImplementedError("T4")
+        try:
+            return weather.current()
+        except ExternalServiceError:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Weather service unavailable") from None
 
     return app
