@@ -1,6 +1,7 @@
 """FastAPI application — Lab 4.  Run:  uvicorn assistant_api.main:create_app --factory --reload
 
-Endpoints (v1): GET /health, POST /v1/chat, POST /v1/feedback, GET /v1/feedback (admin), GET /v1/weather
+Endpoints (v1): GET /health, GET /v1/offices, POST /v1/chat, POST /v1/feedback,
+GET /v1/feedback (admin), GET /v1/weather
 """
 
 from __future__ import annotations
@@ -54,6 +55,11 @@ def create_app(
     @app.get("/health", tags=["ops"])
     def health() -> dict:
         return {"status": "ok", "version": app.version}
+
+    @app.get("/v1/offices", tags=["knowledge"])
+    def list_offices() -> list[dict[str, str]]:
+        """Return all offices sorted by name."""
+        return [office.__dict__ for office in service.offices.all()]
 
     @app.post(
         "/v1/chat",
