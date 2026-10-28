@@ -256,7 +256,7 @@ fresh-cache check passed: two reads, one upstream call, both `stale: false`.
 Current evidence: `weather-matrix.log` inside the integrated run directory;
 the earlier reference log remains at the parent evidence directory.
 Reproduction steps are in the
-[external API failure worksheet](../lab04_resource/worksheets/external_api_failure.md#reproducing-the-failurecache-matrix).
+[external API failure worksheet](external_api_failure.md#reproducing-the-failurecache-matrix).
 
 An additional malformed-type probe with `{"current": null}` returned 500 because
 TypeError is not handled. This is a recorded robustness defect, not another

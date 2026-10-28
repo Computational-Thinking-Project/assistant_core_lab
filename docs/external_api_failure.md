@@ -111,7 +111,7 @@ The required four failure rows and cache behaviour **passed on the integrated
 root API**; they are no longer blocked on T4. The additional `current: null`
 probe remains a known limitation, not a passing graceful-failure case. Exact
 commands, source context and log locations are in the
-[QA report](../../docs/lab04_qa_report.md).
+[QA report](lab04_qa_report.md).
 
 ### Reproducing the failure/cache matrix
 

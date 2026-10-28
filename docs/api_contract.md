@@ -8,7 +8,7 @@ Integrated API verified on **2026-10-27** at revision
 `src/assistant_api` package and course data. The root suite reported **98 passed**;
 the root curl script with offices and bonus reported **14 passed, 0 failed**.
 Detailed commands, evidence and verification limits are in the
-[QA report](../../docs/lab04_qa_report.md).
+[QA report](lab04_qa_report.md).
 
 Sources reviewed:
 
