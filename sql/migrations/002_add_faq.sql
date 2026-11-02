@@ -7,3 +7,4 @@ CREATE TABLE IF NOT EXISTS faq (
     updated_at  TIMESTAMP    NOT NULL,
     updated_by  VARCHAR(32)  NOT NULL               -- staff role, not a personal name
 );
+

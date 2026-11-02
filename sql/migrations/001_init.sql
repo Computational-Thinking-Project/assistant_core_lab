@@ -26,3 +26,4 @@ CREATE TABLE IF NOT EXISTS feedback (
     created_at  TIMESTAMP   NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_feedback_request_id ON feedback(request_id);
+

@@ -29,3 +29,4 @@
 
 ## 4. ER diagram
 Draw entities, keys and relationships (photo or Mermaid in docs/data-model.md).
+

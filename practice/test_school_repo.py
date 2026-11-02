@@ -39,3 +39,4 @@ def test_d2_average_grade(con):
 def test_d3_transcript(con):
     assert repo.transcript(con, 2) == [("Computational Thinking", 3, None), ("Data Structures and Algorithms", 4, 5.5),
                                        ("Fundamentals of Programming", 4, 7.0)]
+

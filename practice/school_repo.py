@@ -33,3 +33,4 @@ def transcript(con: sqlite3.Connection, student_id: int) -> list[tuple[str, int,
     """(course title, credits, grade) for one student, sorted by title. Needs a JOIN."""
     # TODO D3: join enrollments with courses on course_code = code, filter by student_id, order by title
     raise NotImplementedError
+

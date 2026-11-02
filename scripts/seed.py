@@ -45,3 +45,4 @@ for _ in range(n):
         good = resolved and not degraded
         repo.add_feedback(rid, 1 if good and random.random() < 0.85 else -1, None)
 print(f"seeded {n} interactions into {db_path}")
+

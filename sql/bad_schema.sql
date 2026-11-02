@@ -10,3 +10,4 @@ CREATE TABLE chats (
     feedback TEXT,              -- '1,-1,1' comma-separated list of ratings
     latency TEXT                -- '120ms'
 );
+

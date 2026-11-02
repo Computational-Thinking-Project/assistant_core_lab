@@ -23,3 +23,4 @@ for f in sorted(folder.glob("*.sql")):
         con.execute("INSERT INTO schema_version VALUES (?, ?)", (f.name, datetime.now(timezone.utc).isoformat()))
     print(f"apply {f.name}")
 con.close()
+
