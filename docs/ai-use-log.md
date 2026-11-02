@@ -12,6 +12,7 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-10-27 | Bội Anh (@htbaax) | Antigravity (Gemini) | Bonus Part F: Rate Limiter for /v1/chat & enable test | Implemented IP-based client rate limiting in `POST /v1/chat` raising HTTP 429 Too Many Requests when exceeding limit, unskipped test_rate_limit, and verified with pytest. |
 | 2026-10-26 | Đình Hùng (@benalexx007) | Antigravity (Gemini) | Consult on FastAPI request validation and UTC timestamp serialization for Task T2 | Consulted AI on Pydantic .model_dump() unpacking syntax and UTC timezone-aware datetime conventions. Wrote and executed automated pytest suites, and manually verified interactive Swagger UI responses. |
 | 2026-10-27 | Nhật Quỳnh (@nhatquynh1107) | Codex | Lab04 TV7 QA and documentation (#31) | Completed worksheets, curl assertions and QA report. Codex verified 98 pytest tests, 14 curl checks and weather mocks. The user supplied Swagger evidence, confirmed peers' screenshots and posted the PR #33 review. |
+| 2026-11-02 | Duy (@johannguyen015) | Antigravity (Gemini) | Lab 05 baseline setup, scaffolding & release coordination (#40) | Initialized Lab 05 baseline on integration branch, added sqlmodel==0.0.22 and database environment configurations, scaffolded migration and seeding scripts, verified test suite, and established release plan. |
 
 ## Lab04 H1 - Office listing (issue #22)
 
@@ -68,3 +69,12 @@ Codex performed these checks; no human verification or full-suite success is
 claimed. H2 remains for the contributor to write in their own words. The
 remaining team endpoints, bonus, and baseline lint are not implemented by
 this H1 update. No dependency declarations were changed.
+
+## Lab05 Setup - Baseline, Scaffolding and Environment Configuration (issue #40)
+
+Tech Lead Duy (@johannguyen015) established the foundational project scaffolding for Lab 05:
+- Added `sqlmodel==0.0.22` dependency to `pyproject.toml` and `requirements.txt`.
+- Configured persistence runtime settings (`database_url`, `session_salt`) in `assistant_core/config.py` and `.env.example`.
+- Placed initial migration scripts (`scripts/migrate.py`, `scripts/seed.py`) and schema DDL (`sql/migrations/001_init.sql`, `002_add_faq.sql`, `sql/bad_schema.sql`, `sql/my_queries.sql`).
+- Added Python SQLite practice templates (`practice/school_repo.py`, `practice/test_school_repo.py`) and design worksheet (`worksheets/data_model.md`).
+- Verified baseline test suite pass and ensured clean git hygiene.
