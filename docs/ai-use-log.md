@@ -12,6 +12,7 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-10-27 | Bội Anh (@htbaax) | Antigravity (Gemini) | Bonus Part F: Rate Limiter for /v1/chat & enable test | Implemented IP-based client rate limiting in `POST /v1/chat` raising HTTP 429 Too Many Requests when exceeding limit, unskipped test_rate_limit, and verified with pytest. |
 | 2026-10-26 | Đình Hùng (@benalexx007) | Antigravity (Gemini) | Consult on FastAPI request validation and UTC timestamp serialization for Task T2 | Consulted AI on Pydantic .model_dump() unpacking syntax and UTC timezone-aware datetime conventions. Wrote and executed automated pytest suites, and manually verified interactive Swagger UI responses. |
 | 2026-10-27 | Nhật Quỳnh (@nhatquynh1107) | Codex | Lab04 TV7 QA and documentation (#31) | Completed worksheets, curl assertions and QA report. Codex verified 98 pytest tests, 14 curl checks and weather mocks. The user supplied Swagger evidence, confirmed peers' screenshots and posted the PR #33 review. |
+| 2026-11-02 | Đạt (@Thanhdat3010) | Antigravity (Gemini) | Consult on SQL aggregation, multi-table JOINs, and LEFT JOIN anti-join patterns for Lab 05 SQL practice (#37) | Reviewed `school.sql` relational schema (`students`, `courses`, `enrollments`), wrote and verified all 15 queries (`Q1–Q10` Must and `Q11–Q15` Should/H1) in `practice/my_answers.sql`, confirmed `Score: 15/15` via `python practice/check.py`, and ensured repository hygiene (`*.db` excluded). |
 
 ## Lab04 H1 - Office listing (issue #22)
 
