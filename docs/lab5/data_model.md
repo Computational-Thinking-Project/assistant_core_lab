@@ -72,32 +72,32 @@ The normalized schema implemented in `assistant_api/db.py` separates concerns in
 
 ```mermaid
 erDiagram
-    CHAT_SESSION ||--o{ INTERACTION : "initiates"
-    INTERACTION ||--o{ FEEDBACK : "receives"
+    CHAT_SESSION ||--o{ INTERACTION : initiates
+    INTERACTION ||--o{ FEEDBACK : receives
 
     CHAT_SESSION {
-        string id PK "Salted SHA-256 hash (16 chars)"
-        string channel "e.g. web, mobile (default: web)"
+        string id PK "Salted SHA-256 hash"
+        string channel "e.g. web"
         datetime created_at "UTC timestamp"
     }
 
     INTERACTION {
         int id PK "Autoincrement primary key"
-        string request_id UQ "12-char hex request ID (indexed)"
+        string request_id "Unique 12-char hex request ID"
         string session_id FK "References chat_session.id"
-        string intent "e.g. fee, office, rule, greeting, unknown"
-        string topic "e.g. handbook rule ID, office ID (nullable)"
-        boolean resolved "True = answered, False = unknown/error"
-        boolean degraded "True = fallback/degraded answer used"
-        float latency_ms "Response time in milliseconds"
-        datetime created_at "UTC timestamp (indexed)"
+        string intent "Categorized intent"
+        string topic "Handbook rule ID"
+        boolean resolved "Answered or error"
+        boolean degraded "Fallback answer used"
+        float latency_ms "Latency in ms"
+        datetime created_at "UTC timestamp"
     }
 
     FEEDBACK {
         int id PK "Autoincrement primary key"
         string request_id FK "References interaction.request_id"
-        int rating "Rating value (-1: down, 0: neutral, 1: up)"
-        string comment "Optional text (max 500 chars)"
+        int rating "Rating minus 1 to 1"
+        string comment "Optional user comment"
         datetime created_at "UTC timestamp"
     }
 ```
