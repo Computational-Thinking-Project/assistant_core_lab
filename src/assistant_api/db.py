@@ -8,7 +8,8 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import case, func
+from sqlalchemy import case, event, func
+from sqlalchemy.engine import Engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
@@ -48,14 +49,25 @@ class Feedback(SQLModel, table=True):
     interaction: Optional["Interaction"] = Relationship(back_populates="feedback")
 
 
-def make_engine(url: str):  # noqa: ANN201
+def make_engine(url: str) -> Engine:
     if url in ("sqlite://", "sqlite:///:memory:"):
-        return create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-    return create_engine(url, connect_args=connect_args)
+        engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    else:
+        connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
+        engine = create_engine(url, connect_args=connect_args)
+
+    if url.startswith("sqlite"):
+
+        @event.listens_for(engine, "connect")
+        def set_sqlite_pragma(dbapi_connection, connection_record) -> None:  # noqa: ANN001
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
+    return engine
 
 
-def init_db(engine) -> None:  # noqa: ANN001
+def init_db(engine: Engine) -> None:
     SQLModel.metadata.create_all(engine)
 
 
@@ -66,7 +78,7 @@ def hash_session(raw: str, salt: str) -> str:
 class Repository:
     """All database access goes through here — the API never writes SQL."""
 
-    def __init__(self, engine, salt: str):
+    def __init__(self, engine: Engine, salt: str) -> None:
         self.engine, self.salt = engine, salt
 
     def record_interaction(

@@ -1,6 +1,8 @@
+import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
-from assistant_api.db import ChatSession, Interaction, Repository, hash_session, init_db, make_engine
+from assistant_api.db import ChatSession, Feedback, Interaction, Repository, hash_session, init_db, make_engine
 
 
 def make_repo():
@@ -45,3 +47,13 @@ def test_list_feedback_ordering_and_limit():
     assert feedbacks[0].request_id == "r2"
     assert feedbacks[1].request_id == "r1"
     assert len(repo.list_feedback(limit=1)) == 1
+
+
+def test_sqlite_foreign_key_enforcement():
+    _, engine = make_repo()
+    with pytest.raises(IntegrityError):
+        with Session(engine) as db:
+            fb = Feedback(request_id="non-existent-request", rating=1)
+            db.add(fb)
+            db.commit()
+
