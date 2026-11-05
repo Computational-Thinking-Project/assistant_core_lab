@@ -37,6 +37,11 @@ wheels/
 .coverage
 htmlcov/
 
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
 # Logs & temp files
 *.log
 history.txt

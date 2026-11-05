@@ -14,6 +14,18 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-10-27 | Nhật Quỳnh (@nhatquynh1107) | Codex | Lab04 TV7 QA and documentation (#31) | Completed worksheets, curl assertions and QA report. Codex verified 98 pytest tests, 14 curl checks and weather mocks. The user supplied Swagger evidence, confirmed peers' screenshots and posted the PR #33 review. |
 | 2026-11-02 | Đạt (@Thanhdat3010) | Antigravity (Gemini) | Consult on SQL aggregation, multi-table JOINs, and LEFT JOIN anti-join patterns for Lab 05 SQL practice (#37) | Reviewed `school.sql` relational schema (`students`, `courses`, `enrollments`), wrote and verified all 15 queries (`Q1–Q10` Must and `Q11–Q15` Should/H1) in `practice/my_answers.sql`, confirmed `Score: 15/15` via `python practice/check.py`, and ensured repository hygiene (`*.db` excluded). |
 | 2026-11-03 | Đình Hùng (@benalexx007) | Antigravity (Gemini) | Implement Lab 05 Part D Python SQLite practice (D1–D3 in school_repo.py) | Implemented parameterized SQL queries in `add_student`, `average_grade`, and `transcript` using `?` placeholders to eliminate SQL injection risks. Verified 5/5 unit tests passed including injection defense test, and confirmed Q1–Q15 practice score 15/15. |
+| 2026-11-04 | Bội Anh (@htbaax) | Antigravity (Gemini) | Complete Lab 05 data model worksheet and privacy review (H3 Bonus) (#42) | Analyzed 7 design anti-patterns in `bad_schema.sql`, formulated data minimization storage matrix, designed product queries, authored normalized ER diagram (Mermaid) across 3 entities, and audited PR #38 persistence code for privacy compliance. Revised after PR #43 review to clarify proposed retention lifecycle and logging/verbatim comment nuances. |
+
+## Lab05 H3 - Schema Design Review & Data Privacy (issue #42)
+
+Author: Hà Trần Bội Anh (@htbaax) - Member 6 (TV6)
+
+Completed the Lab 05 Data Model Worksheet in `worksheets/data_model.md` and `docs/lab5/data_model.md`:
+1. Detailed critique of 7 anti-patterns in `sql/bad_schema.sql` (PII exposure, raw message retention, unnormalized intent, string timestamp, 1NF violation on feedback, string latency with units, missing primary key).
+2. Data Minimization retention policy matrix ensuring zero raw message and zero student identity storage.
+3. Operational query sketches mapping business questions to SQL statements.
+4. Normalized Entity-Relationship diagram in Mermaid capturing `CHAT_SESSION`, `INTERACTION`, and `FEEDBACK`.
+5. Codebase privacy audit of PR #38 verifying zero raw message logging and salted SHA-256 session hashing.
 
 ## Lab04 H1 - Office listing (issue #22)
 
