@@ -40,16 +40,18 @@ CREATE TABLE chats (
 
 ## 2. Store or not? (Privacy-aware storage matrix)
 
-In compliance with Privacy by Design, GDPR, and Vietnam's Personal Data Protection regulations, data storage must follow the **Data Minimization** rule: store only what is strictly necessary to deliver and improve features.
+In compliance with Privacy by Design, GDPR, and Vietnam's Personal Data Protection regulations (Decree 13/2023/ND-CP), data storage must follow the **Data Minimization** rule: store only what is strictly necessary to deliver and improve features.
 
-| Data | Store? | Form (raw / hashed / aggregated / none) | Retention | Reason |
+| Data | Store? | Form (raw / hashed / aggregated / none) | Proposed Retention Policy* | Reason & Behavioral Nuance |
 |---|---|---|---|---|
 | **raw user message** | **No** | `none` | 0 (ephemeral / RAM only) | User questions can inadvertently contain sensitive personal details (PII), academic transcripts, or credentials. Once answered by `AssistantService`, the raw text is discarded. Operational needs only require categorized intent and handbook topic. |
-| **session id** | **Yes** | `hashed` (SHA-256 + secret salt) | 30–90 days | Needed to correlate multi-turn dialogs within a single session and measure active session counts. Hashing with a secret server salt prevents reverse-lookup of user identifiers or IP addresses. |
-| **intent, latency, topic** | **Yes** | `raw` (structured telemetry) | 1 year | Essential operational metrics for monitoring system responsiveness, identifying knowledge gaps (unresolved topics), and tracking usage patterns over time without exposing user identities. |
-| **feedback rating** | **Yes** | `raw` (integer: `-1, 0, 1`) | 1 year | Critical quality metric to measure answer accuracy, student satisfaction, and model degradation over releases. |
-| **feedback comment** | **Yes** | `raw` (sanitized text, max 500 chars) | 90 days | Qualitative feedback explaining why an answer was unhelpful. Subject to length limits and retention pruning to reduce residual PII risk. |
+| **session id** | **Yes** | `hashed in DB` (SHA-256 + salt); `raw in JSON logs` | 30–90 days (proposed)* | Needed to correlate multi-turn dialogs within a single session and measure active session counts. Hashed with a secret server salt before persisting to SQLite (`chat_session.id`). **Nuance:** The raw session ID remains in the in-memory request scope and can be emitted in application JSON logs when logger context formatting is enabled. |
+| **intent, latency, topic** | **Yes** | `raw` (structured telemetry) | 1 year (proposed)* | Essential operational metrics for monitoring system responsiveness, identifying knowledge gaps (unresolved topics), and tracking usage patterns over time without exposing user identities. |
+| **feedback rating** | **Yes** | `raw` (integer: `-1, 0, 1`) | 1 year (proposed)* | Critical quality metric to measure answer accuracy, student satisfaction, and model degradation over releases. |
+| **feedback comment** | **Yes** | `raw text` (stored verbatim, max 500 chars) | 90 days (proposed)* | Qualitative feedback explaining why an answer was unhelpful. Kept optional with a 500-character cap. **Nuance:** Comments are stored verbatim as submitted without automated PII redaction; users could potentially enter personal details in this free-form field (residual PII risk exists). |
 | **student name / phone** | **No** | `none` | 0 (never collected) | Direct identifying PII that provides zero functional value to the virtual assistant. Completely omitted from API schemas and database tables. |
+
+> **\*Note on Retention Policy vs. Current Implementation:** The retention periods specified above represent the **proposed data governance lifecycle policy**. In the current v0.5 release, automated TTL deletion or periodic cleanup cron jobs are not yet implemented in the codebase; data persists in SQLite until manual database truncation or migration.
 
 ---
 
@@ -106,7 +108,11 @@ erDiagram
 1. **1-to-N Cardinality (`CHAT_SESSION` → `INTERACTION`):** A single hashed session can generate multiple interactions over time.
 2. **1-to-N Cardinality (`INTERACTION` → `FEEDBACK`):** An interaction generates zero, one, or multiple feedback entries (supporting audit trails or re-ratings).
 3. **Foreign Key Integrity:** `interaction.session_id` references `chat_session.id`; `feedback.request_id` references `interaction.request_id`.
-4. **Anonymity Guarantee:** No tables contain raw query text, student IDs, student names, IP addresses, or phone numbers.
+4. **Anonymity & Pseudonymity Assessment (Current Implementation vs. Nuances):**
+   - **Database Pseudonymity:** No database tables store raw user query messages, student IDs, student names, IP addresses, or phone numbers. Session tokens are pseudonymized via salted SHA-256 hashing before storing in `chat_session.id`.
+   - **Logging Exposure Nuance:** While the SQLite database stores only the salted session hash, the original raw `session_id` exists in the in-process request context and can be emitted in application-level JSON logs when logging handlers with context formatting are enabled.
+   - **Residual PII Risk in Free-Form Feedback:** The `feedback.comment` column stores user comments verbatim up to 500 characters. Because there is currently no automated PII scrubber/redaction filter applied, users could inadvertently include personal information when submitting feedback.
+
 
 ---
 
