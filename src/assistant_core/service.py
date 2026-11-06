@@ -409,7 +409,7 @@ class AssistantService:
 
 
 def build_service(settings: Any | None = None) -> AssistantService:
-    from assistant_core.config import Settings, load_settings
+    from assistant_core.config import load_settings
     from assistant_core.knowledge import Handbook, OfficeDirectory
     from assistant_core.responder import make_responder
 
