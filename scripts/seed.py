@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
-"""Fill the database with SYNTHETIC interactions and feedback (no real data).
+"""Fill the database with synthetic interactions and feedback (no real data).
 
-python scripts/seed.py assistant.db 300
+From the repository root, install dependencies and this src-layout package::
+
+    python -m pip install -r requirements.txt
+    python -m pip install -e .
+
+Then seed a database with the requested number of records::
+
+    python scripts/seed.py assistant.db 300
 """
 
 import random
