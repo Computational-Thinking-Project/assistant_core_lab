@@ -27,6 +27,22 @@ Completed the Lab 05 Data Model Worksheet in `worksheets/data_model.md` and `doc
 4. Normalized Entity-Relationship diagram in Mermaid capturing `CHAT_SESSION`, `INTERACTION`, and `FEEDBACK`.
 5. Codebase privacy audit of PR #38 verifying zero raw message logging and salted SHA-256 session hashing.
 
+## Lab05 Part F and H2 - Assistant analytics
+
+Codex helped draft and verify the four queries in `sql/assistant_analytics.sql`.
+H2 measures fallback requests as a percentage of all recorded requests for
+each intent. The query file includes the measured results.
+
+- Verified the queries against an empty database and a six-request fixture
+  with known counts, latencies, ratings and fallback flags.
+- Ran the migration and seed scripts from a separate snapshot of PR #41
+  (`b70c385`). Re-running migration skipped both applied files. Two fresh
+  databases each contained 300 synthetic interactions and 96 feedback rows,
+  passed SQLite integrity and foreign-key checks, and produced the same results.
+- Ran the analytics branch's existing pytest suite: 105 passed.
+
+The integration check remains pending until the scaffold lands on `main`.
+
 ## Lab04 H1 - Office listing (issue #22)
 
 Codex implemented the sorted directory method, connected the route to
