@@ -1,5 +1,7 @@
--- Lab 05 Part F and H2.
--- Move these queries to sql/my_queries.sql once PR #41 supplies that file.
+-- Lab 05 Part F and H2: run these queries against the seeded assistant database.
+-- From the repository root, with the package installed, use a fresh database:
+--   python scripts/migrate.py assistant.db
+--   python scripts/seed.py assistant.db 300
 
 -- F1. How many requests does each intent receive?
 SELECT intent, COUNT(*) AS requests
@@ -32,8 +34,8 @@ FROM interaction
 GROUP BY intent
 ORDER BY fallback_pct DESC, intent;
 
--- Results from a fresh database migrated and seeded with 300 synthetic
--- interactions using the PR #41 scaffold at b70c385 (96 feedback rows).
+-- Results from a fresh database with 300 synthetic interactions and
+-- 96 feedback rows, using the merged migration and seed scripts.
 -- F1 (requests): rule 140, fee 61, office 47, greeting 26, unknown 26.
 -- F2 (avg_ms): fee 5.1, greeting 2.4, office 3.4, rule 76.2, unknown 8.1.
 -- F3 (thumbs_down): H26-4.2 8, H26-5.3 8, H26-7.2 2.
@@ -44,3 +46,4 @@ ORDER BY fallback_pct DESC, intent;
 -- office   |       47 |                 1 |          2.1
 -- fee      |       61 |                 1 |          1.6
 -- unknown  |       26 |                 0 |          0.0
+
