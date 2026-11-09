@@ -24,8 +24,9 @@ def build_index(docs: dict[str, str]) -> dict[str, set[str]]:
     Example: {"thesis": {"D1"}, "credits": {"D1", "D2"}, ...}
     """
     index: dict[str, set[str]] = {}
-    # TODO S1: for each (doc_id, text) in docs.items(), for each word in tokenize(text):
-    #          index.setdefault(word, set()).add(doc_id)
+    for doc_id, text in docs.items():
+        for word in tokenize(text):
+            index.setdefault(word, set()).add(doc_id)
     return index
 
 
@@ -33,6 +34,7 @@ def search(index: dict[str, set[str]], query: str, k: int = 2) -> list[tuple[str
     """Score = number of query words found in the document. Return the top k (doc_id, score),
     highest score first; ties broken by doc_id. Documents with score 0 are not returned."""
     scores: dict[str, int] = {}
-    # TODO S2: for each word in tokenize(query): for each doc_id in index.get(word, set()): scores[doc_id] += 1
-    # TODO S3: sort by (-score, doc_id) and return the first k
-    return []
+    for word in tokenize(query):
+        for doc_id in index.get(word, set()):
+            scores[doc_id] = scores.get(doc_id, 0) + 1
+    return sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
