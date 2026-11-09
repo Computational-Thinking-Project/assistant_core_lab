@@ -185,7 +185,7 @@ git push -u origin feat/lab06-trunganh-retrieval
 6. CLI: giữ `--test`, one-shot query và REPL; demo 3 paths và source nếu hữu ích, không làm hỏng stdout/CLI cũ. Chỉ điều chỉnh `__main__.py` khi có test tái hiện.
 7. Tích hợp PR theo thứ tự dependency mục V, giao lại đúng owner khi import fail. Ghi nhận SHA và xung đột thật; không yêu cầu Tâm soạn báo cáo dài mới cho merge. Sau gate review/tag, nộp LMS.
 
-**DoD:** `AssistantService()` + tests legacy pass; `build_service` dựng RAG từ KB mà không phá fee/office; demo fee 9,450,000, retrieval có nguồn, abstain; không phải tự sửa hộ module người khác; PR integration→main merged và tag đúng SHA. **Reviewer:** Đạt (service/router), Hùng (API), Tâm chỉ chặn nếu có test blocker. **Độc lập sớm:** baseline, branch, contract, fake-injection tests.
+**DoD:** `AssistantService()` + tests legacy pass; `build_service` dựng RAG từ KB mà không phá fee/office; demo fee 9,450,000, retrieval có nguồn, abstain; không phải tự sửa hộ module người khác; PR integration→main merged và tag đúng SHA. **Reviewer:** Trung Anh (TV2). **Độc lập sớm:** baseline, branch, contract, fake-injection tests.
 
 ### TV2 — TRUNG ANH: Chunking/index BM25
 
@@ -199,7 +199,7 @@ git push -u origin feat/lab06-trunganh-retrieval
 4. Test `tmp_path`/fixture cho metadata, top hit thesis, score giảm dần, query không liên quan, search top-k; kiểm mẫu có 14 chunks và H26#5.3 là top hit cho câu thesis. Không coi điểm số số học cố định là tiêu chuẩn cho mọi bản indexing.
 5. Chỉ push diff `rag/chunker.py`, `rag/index.py`, test; cung cấp ví dụ `make_index('bm25', load_folder(Path('data/kb')))` cho Đạt/Duy; không sửa service/router.
 
-**DoD:** targeted index tests pass với KB fixture offline; `Index.search()` trả đúng `Hit`/`score`; không ảnh hưởng `knowledge.py` cũ. **Reviewer:** Bội Anh (metadata), Tâm (test). **Không phụ thuộc:** API, LLM, service.
+**DoD:** targeted index tests pass với KB fixture offline; `Index.search()` trả đúng `Hit`/`score`; không ảnh hưởng `knowledge.py` cũ. **Reviewer:** Đạt (TV3). **Không phụ thuộc:** API, LLM, service.
 
 ### TV3 — ĐẠT: Response contract, router và RagAnswerer (A1 official)
 
@@ -214,7 +214,7 @@ git push -u origin feat/lab06-trunganh-retrieval
 5. Đọc `router.py`: fee keyword `fee`/`tuition` và office keyword có thể bắt nhầm **E13/E15**. Viết 2 bài test đặc trưng cho `tuition for 18 credits ...` (fee), `when is tuition due` (known failure hoặc routing improvement có review). Nếu sửa router, chỉ sửa tối thiểu, **không biến câu tính tiền thành RAG** và không ghi nhận E13 đã pass nếu chưa đo.
 6. Không sửa `llm.py` (Quỳnh), `service.py` (Duy); gửi cho họ contract/fake test ngay.
 
-**DoD:** tests A1 no-hit/low-score, retry/fallback, schema mặc định pass; deterministic fees không đổi; failure E13/E15 được ghi nhận trung thực. **Reviewer:** Quỳnh (parse compatibility), Duy (service). **Độc lập:** Fake Index/LLM.
+**DoD:** tests A1 no-hit/low-score, retry/fallback, schema mặc định pass; deterministic fees không đổi; failure E13/E15 được ghi nhận trung thực. **Reviewer:** Hùng (TV4). **Độc lập:** Fake Index/LLM.
 
 ### TV4 — HÙNG: REST API contract + regression Lab 4–5
 
@@ -228,7 +228,7 @@ git push -u origin feat/lab06-trunganh-retrieval
 4. Chạy `tests/test_api.py`, `test_db.py`, `test_persistence_restart.py`: feedback lưu/đọc sau restart; admin key 401 khi thiếu; stats, offices, 422/429, weather 503 không đổi. Kiểm DB không lưu raw message; no migrations mới.
 5. Chỉ cập nhật `main.py` nếu mapping thật sự lỗi. Ghi schema mới trong `docs/api_contract.md`, không đổi API contract cũ ngoài trường bổ sung.
 
-**DoD:** targeted API/DB tests pass trên nhánh integration sau ghép; không endpoint cũ mất; Response có path mới và giữ `request_id`; persistence không đổi. **Reviewer:** Tâm (API checks), Duy (contract). **Độc lập sớm:** test với fake Response/service.
+**DoD:** targeted API/DB tests pass trên nhánh integration sau ghép; không endpoint cũ mất; Response có path mới và giữ `request_id`; persistence không đổi. **Reviewer:** Bội Anh (TV5). **Độc lập sớm:** test với fake Response/service.
 
 ### TV5 — BỘI ANH: KB Markdown, nguồn và privacy guard
 
@@ -242,7 +242,7 @@ git push -u origin feat/lab06-trunganh-retrieval
 4. Gửi sớm KB và guard interface cho Trung Anh/Đạt/Duy; chưa cần sửa `service.py`. Trong PR giải thích giới hạn regex (không tuyên bố chặn mọi dữ liệu cá nhân), đánh dấu dữ liệu là sample.
 5. Kiểm diff không chứa tên, mã SV, log thật; không thêm secret/PII.
 
-**DoD:** KB tải được bằng `load_folder()`, bộ mẫu là 14 chunks, guard unit tests pass, nguồn cũ nguyên vẹn. **Reviewer:** Trung Anh (chunk ID), Quỳnh (prompt privacy). **Độc lập:** từ starter gốc.
+**DoD:** KB tải được bằng `load_folder()`, bộ mẫu là 14 chunks, guard unit tests pass, nguồn cũ nguyên vẹn. **Reviewer:** Quỳnh (TV6). **Độc lập:** từ starter gốc.
 
 ### TV6 — QUỲNH: LLM adapter, structured JSON, grounding (A2 official), Settings
 
@@ -257,7 +257,7 @@ git push -u origin feat/lab06-trunganh-retrieval
 5. Sửa `load_settings` để **chỉ provider `openai`** yêu cầu API key; `ollama` và `stub` không cần. Viết test riêng cho 3 provider, nhất là cấu hình `ollama` không key và `openai` không key bị từ chối; không làm vỡ khởi tạo FastAPI ở cấu hình stub.
 6. Ollama/OpenAI adapters theo starter nếu mang vào repo thì mock network trong test; **không** chạy model thật như điều kiện merge. Đưa `make_llm`/`parse_draft` contract cho Đạt/Duy trước khi code hoàn thành.
 
-**DoD:** JSON/citation sai bị từ chối; stub offline; tests LLM **và config** pass; settings Lab 4–5 giữ nguyên; không rò key. **Reviewer:** Đạt (A2/answerer), Duy (build_service/config). **Độc lập:** fake Hit.
+**DoD:** JSON/citation sai bị từ chối; stub offline; tests LLM **và config** pass; settings Lab 4–5 giữ nguyên; không rò key. **Reviewer:** Tâm (TV7). **Độc lập:** fake Hit.
 
 ### TV7 — TÂM: Evaluation, targeted E2E và release QA (giảm gánh tổng hợp)
 
@@ -273,7 +273,7 @@ git push -u origin feat/lab06-trunganh-retrieval
 6. Khi Duy ghép core, chạy integration tests một lần; Hùng tự phụ trách API/persistence. Cuối cùng chạy **full regression một lần trên release candidate SHA**; chạy lại full suite **chỉ nếu code sau đó thay đổi**. Báo cáo ngắn gồm SHA, số passed/failed/skipped, blocker, known failure, link evidence; không tạo thêm bộ tài liệu dài nếu không cần.
 7. Báo blocker có reproduction/affected test/owner, không tự gánh sửa code. **Không chặn PR module đã pass targeted** chỉ vì QA tổng hợp chưa hoàn tất; quyền chặn áp dụng cho release khi lỗi an toàn/dữ liệu/contract/regression thật.
 
-**DoD:** evaluator chạy xong 20 case, có đủ 3 paths và số liệu thật; smoke tests + full regression release pass, hoặc có danh sách blocker minh bạch trước khi tag; không có gánh tổng hợp 35 case. **Reviewer:** Hùng (API/DB), Duy (release). **Độc lập sớm:** 20-case evaluator chạy trên starter.
+**DoD:** evaluator chạy xong 20 case, có đủ 3 paths và số liệu thật; smoke tests + full regression release pass, hoặc có danh sách blocker minh bạch trước khi tag; không có gánh tổng hợp 35 case. **Reviewer:** Duy (TV1). **Độc lập sớm:** 20-case evaluator chạy trên starter.
 
 ---
 
@@ -371,13 +371,13 @@ python -m pytest -q
 
 | PR B của | Reviewer chính | Điều kiện approve trước merge |
 |---|---|---|
-| Duy | Đạt (logic), Hùng (API) | Constructor cũ tương thích; rule/fee/office không hỏng |
-| Trung Anh | Bội Anh | KB metadata + retrieval score/top-k đúng |
-| Đạt | Quỳnh | A1 trước LLM; fallback và source contract đúng |
-| Hùng | Duy | Chat schema additive; feedback/persistence không hỏng |
-| Bội Anh | Trung Anh | Đúng 3 KB mẫu; guard có positive/negative tests |
-| Quỳnh | Đạt | A2/JSON/provider config test tốt; giữ stub offline |
-| Tâm | Hùng | Script eval chạy, không sửa expected, có số đo/known failures |
+| Duy (TV1) | Trung Anh (TV2) | Constructor cũ tương thích; rule/fee/office không hỏng |
+| Trung Anh (TV2) | Đạt (TV3) | KB metadata + retrieval score/top-k đúng |
+| Đạt (TV3) | Hùng (TV4) | A1 trước LLM; fallback và source contract đúng |
+| Hùng (TV4) | Bội Anh (TV5) | Chat schema additive; feedback/persistence không hỏng |
+| Bội Anh (TV5) | Quỳnh (TV6) | Đúng 3 KB mẫu; guard có positive/negative tests |
+| Quỳnh (TV6) | Tâm (TV7) | A2/JSON/provider config test tốt; giữ stub offline |
+| Tâm (TV7) | Duy (TV1) | Script eval chạy, không sửa expected, có số đo/known failures |
 
 **Chỉ chặn merge/release khi:** test thay đổi behavior cũ không chủ ý; A1 gọi LLM khi thiếu nguồn; A2 chấp nhận citation giả; leak PII/key; DB feedback mất; API contract bị phá; không chạy được evaluation; PR sửa ngoài ownership không có thống nhất. **Không chặn chỉ vì:** reviewer muốn nhiều docs hơn, E13/E15/E19 vốn là known failures, Ollama chưa cài, hoặc không đủ 55 case.
 
