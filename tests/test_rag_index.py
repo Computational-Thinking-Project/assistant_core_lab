@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from assistant_core.rag.chunker import chunk_markdown, load_folder
+from assistant_core.rag.chunker import Chunk, chunk_markdown, load_folder
+from assistant_core.rag.index import BM25Index, Hit, make_index, tokenize
 
 KB = Path(__file__).parent / "fixtures" / "lab06" / "kb"
 
@@ -63,3 +64,66 @@ def test_no_sections_returns_no_chunks(tmp_path, text):
     path = tmp_path / "sample.md"
     path.write_text(text, encoding="utf-8")
     assert chunk_markdown(path) == []
+
+
+def test_bm25_finds_thesis_rule(chunks):
+    hits = make_index("bm25", chunks).search("can I register my thesis with 118 credits")
+    assert hits[0].chunk.id == "H26#5.3"
+    assert hits[0].score >= 2.0
+    assert all(isinstance(hit, Hit) and hit.score > 0 for hit in hits)
+    assert [hit.score for hit in hits] == sorted((hit.score for hit in hits), reverse=True)
+
+
+@pytest.mark.parametrize("k", [1, 2, 3, 100])
+def test_bm25_top_k_is_prefix_of_full_ranking(chunks, k):
+    index = make_index("bm25", chunks)
+    full = index.search("students credits registration exam", k=len(chunks))
+    assert full
+    assert index.search("students credits registration exam", k=k) == full[:k]
+
+
+@pytest.mark.parametrize("query", ["", "the and is", "what is the capital of France"])
+def test_bm25_no_match_returns_empty(chunks, query):
+    assert make_index("bm25", chunks).search(query) == []
+
+
+@pytest.mark.parametrize("k", [0, -1])
+def test_bm25_nonpositive_limit_returns_empty(chunks, k):
+    assert make_index("bm25", chunks).search("thesis", k=k) == []
+
+
+def test_bm25_empty_corpus_returns_empty():
+    assert BM25Index([]).search("thesis") == []
+
+
+def test_bm25_corpus_without_searchable_tokens_returns_empty():
+    chunk = Chunk("X#1", "X", "the", "and is", "v1", "Test")
+    assert BM25Index([chunk]).search("thesis") == []
+
+
+def test_bm25_equal_scores_retain_input_order():
+    chunks = [Chunk(cid, "X", "Card", "replacement", "v1", "Test") for cid in ["X#2", "X#1"]]
+    hits = BM25Index(chunks).search("card")
+    assert hits[0].score == hits[1].score
+    assert [hit.chunk.id for hit in hits] == ["X#2", "X#1"]
+
+
+def test_bm25_prefers_document_matching_both_query_terms():
+    chunks = [
+        Chunk("X#1", "X", "", "thesis apple", "v1", "Test"),
+        Chunk("X#2", "X", "", "thesis registration", "v1", "Test"),
+        Chunk("X#3", "X", "", "pear orange", "v1", "Test"),
+    ]
+    hits = BM25Index(chunks).search("thesis registration")
+    assert [hit.chunk.id for hit in hits] == ["X#2", "X#1"]
+    assert hits[0].score > hits[1].score
+
+
+def test_tokenize_keeps_lecturer_rules_without_stemming():
+    assert tokenize("Can I register my THESIS, with 118 credits?") == ["register", "thesis", "118", "credits"]
+    assert tokenize("credits credit") == ["credits", "credit"]
+
+
+def test_make_index_rejects_unsupported_kind(chunks):
+    with pytest.raises(ValueError, match="Unsupported retrieval kind"):
+        make_index("tfidf", chunks)
