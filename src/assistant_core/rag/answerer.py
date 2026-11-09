@@ -11,6 +11,7 @@ Order of defences:
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -38,6 +39,7 @@ except ImportError:
 
         def complete(self, prompt: str) -> str: ...
 
+    @dataclass(frozen=True)
     class AnswerDraft:  # type: ignore[no-redef]
         answer: str
         source_ids: list[str]
@@ -52,7 +54,22 @@ except ImportError:
         return f"SOURCES:\n{sources}\nQUESTION: {question}"
 
     def parse_draft(raw: str, allowed_ids: set[str]) -> AnswerDraft:
-        raise NotImplementedError("llm module not yet integrated")
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ProviderError(f"invalid JSON from LLM: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ProviderError("LLM output must be a JSON object")
+        abstain = bool(data.get("abstain", False))
+        source_ids = list(data.get("source_ids", []))
+        if not abstain and (not source_ids or not set(source_ids) <= allowed_ids):
+            raise ProviderError(f"ungrounded citation: {source_ids} not in {allowed_ids}")
+        return AnswerDraft(
+            answer=str(data.get("answer", "")),
+            source_ids=source_ids,
+            confidence=float(data.get("confidence", 0.0)),
+            abstain=abstain,
+        )
 
 log = logging.getLogger("assistant_core.rag")
 ESCALATE_MSG = (

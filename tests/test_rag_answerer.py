@@ -1,12 +1,13 @@
-"""Targeted unit tests for Response contract and RagAnswerer (TV3 - Đạt).
+"""Targeted unit tests for Response contract, router characterization, and RagAnswerer (TV3 - Đạt).
 
 Tests verify:
-1. Response model backward compatibility with defaults.
+1. Response model backward compatibility with defaults (`escalate=False`, `path="deterministic"`, `confidence=None`).
 2. A1: Pre-retrieval abstain (zero LLM calls when score < min_score or no hits).
-3. Retrieval-only baseline (llm=None).
-4. LLM path success and source mapping.
-5. ProviderError / bad output retry policy and degraded retrieval fallback.
-6. Tool runner execution and error handling.
+3. Retrieval-only baseline (`llm=None`).
+4. LLM grounded success (`path="llm"`, source mapping) and model-initiated abstain (`abstain=True`).
+5. ProviderError / invalid JSON retry policy (`retries=1` -> 2 attempts) and degraded retrieval fallback.
+6. FakeToolRunner execution and `InvalidRequest` degraded handling.
+7. Router characterization for tuition calculation (`Intent.FEE`) and known failures E13/E15.
 """
 
 from __future__ import annotations
@@ -14,11 +15,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-import pytest
-
 from assistant_core.errors import InvalidRequest, ProviderError
-from assistant_core.models import Intent, Message, Response, Source
+from assistant_core.models import Intent, Response
 from assistant_core.rag.answerer import ESCALATE_MSG, RagAnswerer
+from assistant_core.router import route
 
 
 @dataclass(frozen=True)
@@ -61,11 +61,26 @@ class SpyLLM:
         if self.return_values:
             return self.return_values.pop(0)
         return json.dumps({
-            "answer": "Default mock answer",
+            "answer": "Students need at least 120 credits and GPA >= 2.0 to register the thesis.",
             "source_ids": ["H26#5.3"],
             "confidence": 0.85,
             "abstain": False,
         })
+
+
+class FakeToolRunner:
+    def __init__(self, result: str | None = None, error_msg: str | None = None):
+        self.result = result
+        self.error_msg = error_msg
+        self.calls: list[str] = []
+
+    def __call__(self, raw: str) -> str | None:
+        self.calls.append(raw)
+        if self.error_msg is not None:
+            raise InvalidRequest(self.error_msg)
+        if "calc_fee" in raw:
+            return self.result
+        return None
 
 
 def test_response_model_backward_compatibility():
@@ -127,6 +142,24 @@ def test_rag_answerer_retrieval_baseline():
     assert res.degraded is False
 
 
+def test_rag_answerer_llm_grounded_success():
+    """When LLM returns valid grounded JSON, return path='llm' with mapped Source objects."""
+    hit = DummyHit(chunk=DummyChunk(id="H26#5.3", title="Thesis registration", text="Min 120 credits."), score=5.0)
+    fake_index = FakeIndex(hits=[hit])
+    spy_llm = SpyLLM()
+    answerer = RagAnswerer(fake_index, spy_llm, min_score=2.0)
+
+    res = answerer.answer("can I register my thesis with 118 credits")
+
+    assert spy_llm.call_count == 1
+    assert res.path == "llm"
+    assert res.intent == Intent.RULE
+    assert res.degraded is False
+    assert res.escalate is False
+    assert res.confidence == 0.85
+    assert [s.id for s in res.sources] == ["H26#5.3"]
+
+
 def test_rag_answerer_llm_provider_failure_fallback():
     """When LLM provider fails on all retries, fall back to degraded retrieval."""
     hit = DummyHit(chunk=DummyChunk(id="H26#5.3", title="Thesis registration", text="Min 120 credits."), score=5.0)
@@ -145,37 +178,48 @@ def test_rag_answerer_llm_provider_failure_fallback():
 
 
 def test_rag_answerer_tool_runner():
-    """When tool runner is configured and model requests fee calculation."""
+    """When FakeToolRunner is configured and model requests fee calculation."""
     hit = DummyHit(chunk=DummyChunk(id="F26#2", title="Retake fee", text="1.5x regular rate"), score=3.0)
     fake_index = FakeIndex(hits=[hit])
     llm = SpyLLM(return_values=['{"tool": "calc_fee", "args": {"credits": 10}}'])
+    tool_runner = FakeToolRunner(result="Total fee is 4,500,000 VND")
 
-    def dummy_tool_runner(raw: str) -> str | None:
-        if "calc_fee" in raw:
-            return "Total fee is 4,500,000 VND"
-        return None
-
-    answerer = RagAnswerer(fake_index, llm, min_score=2.0, tool_runner=dummy_tool_runner)
+    answerer = RagAnswerer(fake_index, llm, min_score=2.0, tool_runner=tool_runner)
     res = answerer.answer("how much does a retake cost")
 
+    assert len(tool_runner.calls) == 1
     assert res.path == "tool"
     assert res.intent == Intent.FEE
     assert "4,500,000" in res.answer
 
 
 def test_rag_answerer_tool_runner_invalid_request():
-    """When tool runner raises InvalidRequest, return degraded tool response."""
+    """When FakeToolRunner raises InvalidRequest, return degraded tool response."""
     hit = DummyHit(chunk=DummyChunk(id="F26#2", title="Retake fee", text="1.5x regular rate"), score=3.0)
     fake_index = FakeIndex(hits=[hit])
     llm = SpyLLM(return_values=['{"tool": "calc_fee", "args": {"credits": 999}}'])
+    tool_runner = FakeToolRunner(error_msg="credits exceed maximum limit of 30")
 
-    def invalid_tool_runner(raw: str) -> str | None:
-        raise InvalidRequest("credits exceed maximum limit of 30")
-
-    answerer = RagAnswerer(fake_index, llm, min_score=2.0, tool_runner=invalid_tool_runner)
+    answerer = RagAnswerer(fake_index, llm, min_score=2.0, tool_runner=tool_runner)
     res = answerer.answer("can I take 999 credits")
 
+    assert len(tool_runner.calls) == 1
     assert res.path == "tool"
     assert res.intent == Intent.FEE
     assert res.degraded is True
     assert "credits exceed maximum limit" in res.answer
+
+
+def test_router_fee_calculation_query():
+    """Deterministic tuition calculation query ('tuition for 18 credits ...') routes to Intent.FEE."""
+    offices = {"Training Office", "Library", "Finance Office"}
+    assert route("tuition for 18 credits and 2 retake", offices) == Intent.FEE
+
+
+def test_router_known_failure_e13_and_e15_characterization():
+    """Characterize known keyword-routing behaviour for E13 ('tuition due') and E15 ('library book')."""
+    offices = {"Training Office", "Library", "Finance Office"}
+    # E13 contains 'tuition', so simple keyword router classifies it as Intent.FEE (known failure E13)
+    assert route("when is tuition due", offices) == Intent.FEE
+    # E15 contains office name 'library', so simple keyword router classifies it as Intent.OFFICE (known failure E15)
+    assert route("how long can I keep a library book", offices) == Intent.OFFICE
