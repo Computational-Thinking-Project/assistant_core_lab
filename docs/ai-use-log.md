@@ -1,5 +1,54 @@
 # AI Use Log
 
+## Lab06 group retrieval - Trung Anh / philip-kkk - 2026-11-10
+
+- Tool: Codex. The user authorized implementation and local commits; no push or GitHub mutation was performed.
+- Branch: `feat/lab06-trunganh-retrieval`, base `integration/lab06-v0.6` at `27fbea699d16968ceb169b795bcf979e69bc1b61`.
+- Ported lecturer-style Markdown chunking, metadata/section IDs and BM25 retrieval into root `src/assistant_core/rag/`. Existing legacy `knowledge.py`, service, router, API, settings and database code remain unchanged.
+- Added three unchanged sample KB fixtures under `tests/fixtures/lab06/kb/`, sourced from `sources/lab6` at `839efd2c70df6d45d5e3c95909d8b219aba982be`. Their bytes were compared with the Git source before commit. These are teaching samples, not verified university policy or runtime KB owned by another member.
+- Tests are self-contained on this branch; they do not require the exercise branch, root `data/kb`, a model or a network connection. The root interpreter's `assistant_core.__file__` was checked against root `src`, not the separate exercise starter.
+- The existing root virtual environment was completed using locally available SQLModel 0.0.22/SQLAlchemy/greenlet packages from the exercise environment; Pydantic remains 2.9.2. No dependency declarations were modified and no downloads were needed.
+
+### Contracts and usage
+
+```python
+from pathlib import Path
+
+from assistant_core.rag.chunker import load_folder
+from assistant_core.rag.index import make_index
+
+# Standalone check using this PR's sample fixtures:
+chunks = load_folder(Path("tests/fixtures/lab06/kb"))
+index = make_index("bm25", chunks)
+hits = index.search("can I register my thesis with 118 credits", k=3)
+assert hits[0].chunk.id == "H26#5.3"
+
+# Application wiring after the KB owner's files are integrated:
+# index = make_index("bm25", load_folder(Path("data/kb")))
+```
+
+`Chunk(id, doc_id, title, text, version, owner)` and `Hit(chunk, score)` are frozen dataclasses. `Index.search(query, k=3)` returns positive-score hits ordered by descending BM25 score, with input order retained on ties. IDs remain `doc_id#section`; loading sorts file names and preserves section order. Empty/no-match queries, empty/all-stopword corpora and nonpositive limits return `[]`. BM25 tokenization, scoring and three-decimal output follow the lecturer baseline; no stemming, embeddings, TF-IDF or hybrid retrieval is added. `make_index` explicitly raises `ValueError` for unsupported kinds. Scores rank documents; the answerer's A1 owns the relevance threshold and abstention decision.
+
+### Verification and evidence
+
+All commands below run from the repository root using `.venv/Scripts/python.exe`:
+
+| Check | Command / method | Result |
+|---|---|---|
+| Chunking commit `7bc41f4` | `python -m pytest -q tests/test_rag_index.py -p no:cacheprovider` | 7 passed |
+| Complete retrieval module | Same targeted command, fresh external `--basetemp` | 23 passed |
+| Lecturer compatibility | Compared 8 queries at k=1,3,20 against the lecturer BM25 implementation from Git | All 24 source-ID/score comparisons matched; thesis top `H26#5.3`, score 4.914 |
+| Root regression | `python -m pytest -q -p no:cacheprovider --basetemp E:/HCMUS/Tu_duy_tinh_toan/tmp/lab06-retrieval-final` | 129 passed, 1 dependency warning, 4.61 seconds |
+| Ruff | `python -m ruff check src/assistant_core/rag tests/test_rag_index.py` | Passed |
+| Formatting | `python -m ruff format --check src/assistant_core/rag tests/test_rag_index.py` | 4 files already formatted |
+| Diff hygiene | `git diff --check` | Passed |
+
+The 23 module tests cover sample metadata and 14 unique sections, exact source IDs, filename/section order, flat frontmatter/Windows newlines, empty documents, thesis ranking, top-k and score order, no-match queries, nonpositive k, empty/all-stopword corpora, equal-score ordering, multi-term relevance, tokenizer behavior and unsupported kinds. The count of 14 is asserted only for the sample fixtures, not hardcoded in implementation.
+
+Initial baseline runs had 105 passed and one failure in the existing persistence test during HTTPX initialization: first an unsupported environment proxy scheme, then an inaccessible environment `SSLKEYLOGFILE` path. The persistence test passed in isolation when those variables were removed from the test subprocess environment; the final full regression used the same process-local environment cleanup. No application code or existing test was changed to work around these environment issues. All API tests remain local; no external request was made. The remaining warning is Starlette's deprecated AnyIO `BlockingPortal` alias.
+
+The final full regression was run on the exact code/tests content committed as `d4c4e29`; creating that commit changed no tested bytes. This subsequent documentation-only commit records the results. The standalone module is verified; integration with other members' answerer/service/runtime KB, human review and release are not claimed. Reviewer: Dat (TV3). Downstream consumers: Dat's answerer and Duy's service.
+
 Track AI-assisted development, prompts, generated outputs, reviews, and modifications.
 
 | Date | Member | Tool / Model | Task / Prompt | Changes Made & Justification |
