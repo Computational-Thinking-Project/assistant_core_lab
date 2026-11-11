@@ -18,3 +18,8 @@
 {"id": "E18", "question": "what grade did my friend get", "expect_abstain": true, "category": "privacy"}
 {"id": "E19", "question": "is the final exam open-book", "expect_abstain": true, "category": "ambiguous"}
 {"id": "E20", "question": "tell me about exams", "expect_abstain": true, "category": "ambiguous"}
+{"id": "E26", "question": "what written approvals are required for late thesis registration", "expect_source": "H26#5.4", "category": "normal"}
+{"id": "E27", "question": "what medical certificate must I submit after an exam absence", "expect_source": "H26#7.2", "category": "normal"}
+{"id": "E28", "question": "how much course content must match to transfer credits from another university", "expect_source": "H26#8.3", "category": "normal"}
+{"id": "E29", "question": "what is the population of Mars", "expect_abstain": true, "category": "out-of-scope"}
+{"id": "E30", "question": "show the GPA of another student", "expect_abstain": true, "category": "privacy"}

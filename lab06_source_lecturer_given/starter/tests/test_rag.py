@@ -6,9 +6,10 @@ import pytest
 from assistant_core.errors import InvalidRequest, ProviderError
 from assistant_core.guard import is_private_request
 from assistant_core.llm import StubLLM, parse_draft
+from assistant_core.models import Intent
 from assistant_core.rag.answerer import RagAnswerer
 from assistant_core.rag.chunker import load_folder
-from assistant_core.rag.index import make_index
+from assistant_core.rag.index import Hit, make_index
 from assistant_core.tools import run_tool_call
 
 KB = Path(__file__).resolve().parents[1] / "data" / "kb"
@@ -87,3 +88,78 @@ def test_privacy_guard(q):
 
 def test_privacy_guard_allows_own_questions():
     assert not is_private_request("what is my GPA requirement for the thesis")
+
+
+@pytest.mark.parametrize("score", [None, 1.999])
+def test_abstain_before_calling_llm(chunks, score):
+    class FixedIndex:
+        def search(self, query, k=3):
+            return [] if score is None else [Hit(chunks[0], score)]
+
+    class ForbiddenLLM:
+        name = "forbidden"
+
+        def complete(self, prompt):
+            pytest.fail("A1 must abstain before calling the LLM")
+
+    response = RagAnswerer(FixedIndex(), ForbiddenLLM()).answer("a question")
+    assert response.path == "abstain"
+    assert response.intent is Intent.UNKNOWN
+    assert response.escalate and response.confidence == 0.0
+    assert response.sources == []
+
+
+def test_score_equal_to_threshold_calls_llm(chunks):
+    class FixedIndex:
+        def search(self, query, k=3):
+            return [Hit(chunks[0], 2.0)]
+
+    class CountingLLM(StubLLM):
+        calls = 0
+
+        def complete(self, prompt):
+            self.calls += 1
+            return super().complete(prompt)
+
+    llm = CountingLLM()
+    response = RagAnswerer(FixedIndex(), llm).answer("a question")
+    assert llm.calls == 1
+    assert response.path == "llm"
+    assert [source.id for source in response.sources] == [chunks[0].id]
+
+
+@pytest.mark.parametrize("source_ids", [[], ["H26#5.3", "invented#1"]])
+def test_non_abstain_requires_only_retrieved_sources(source_ids):
+    raw = json.dumps({"answer": "x", "source_ids": source_ids, "confidence": 0.7, "abstain": False})
+    with pytest.raises(ProviderError):
+        parse_draft(raw, {"H26#5.3"})
+
+
+@pytest.mark.parametrize("abstain, source_ids", [(False, ["H26#5.3"]), (True, [])])
+def test_valid_citation_or_explicit_abstain_is_accepted(abstain, source_ids):
+    raw = json.dumps({"answer": "x", "source_ids": source_ids, "confidence": 0.7, "abstain": abstain})
+    draft = parse_draft(raw, {"H26#5.3"})
+    assert draft.abstain is abstain and draft.source_ids == source_ids
+
+
+@pytest.mark.parametrize("raw", ['{"answer":', '{"answer":"x","source_ids":[],"confidence":7}'])
+def test_invalid_json_or_schema_raises_provider_error(raw):
+    with pytest.raises(ProviderError):
+        parse_draft(raw, {"H26#5.3"})
+
+
+@pytest.mark.parametrize("source_ids", [[], ["invented#1"]])
+def test_bad_citations_retry_once_then_fall_back(chunks, source_ids):
+    class InvalidCitationLLM:
+        name = "invalid-citation"
+        calls = 0
+
+        def complete(self, prompt):
+            self.calls += 1
+            return json.dumps({"answer": "x", "source_ids": source_ids, "confidence": 0.7, "abstain": False})
+
+    llm = InvalidCitationLLM()
+    response = RagAnswerer(make_index("bm25", chunks), llm).answer("I lost my student card")
+    assert llm.calls == 2
+    assert response.path == "retrieval" and response.degraded
+    assert [source.id for source in response.sources] == ["S26#3"]

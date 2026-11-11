@@ -1,5 +1,16 @@
 # AI Use Log
 
+## Lab06 individual exercise - Trung Anh / philip-kkk - 2026-11-10
+
+- Tool: Codex. User authorized implementation and local commits only; no push.
+- Branch `exercise/lab06-trunganh`, base `exercise/lab06-starter-base` at `c2677ce`.
+- AI implemented S1-S3 mini-search and starter A1 abstention/A2 citation checks, added 11 parametrized RAG checks, drafted H1 E26-E30 and the comparison report.
+- Verification: original mini-search 2 passed/2 failed and original RAG 13 passed/2 failed; added checks exposed 8 failures before A1/A2 were completed. Final mini-search 4 passed, RAG 26 passed, full starter 53 passed with one Starlette/AnyIO deprecation warning. Changed Python files pass Ruff check/format and diff check.
+- Actual evaluation: E01-E20 deterministic 7/20 and retrieval/stub 16/20; with H1 deterministic 9/25 and retrieval/stub 21/25. E13-E15/E19 remain documented limitations; no expected outputs were changed to conceal failures.
+- Full code/cases content is committed as `6b0e03e311e1a0394c454589a954890e9440ebf4`; tests ran on that same content before creating the commit. This subsequent documentation-only commit records evidence; no human verification is claimed.
+- The ignored starter virtual environment reuses compatible local packages, including pinned Pydantic 2.9.2 and SQLModel 0.0.22, with its source path checked explicitly. No dependency declarations changed, downloads, API keys or network model calls were needed.
+- Details and reproduction: `lab06_source_lecturer_given/starter/docs/lab6/path_comparison.md`. Root application behavior, root integration, LMS submission and release were outside this exercise.
+
 Track AI-assisted development, prompts, generated outputs, reviews, and modifications.
 
 | Date | Member | Tool / Model | Task / Prompt | Changes Made & Justification |
