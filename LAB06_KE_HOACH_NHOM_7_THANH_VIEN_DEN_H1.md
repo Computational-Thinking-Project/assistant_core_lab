@@ -52,6 +52,49 @@
 
 ---
 
+## 2.1. Hướng xử lý cụ thể những gì đã có trên repo
+
+**Phạm vi:** Chỉ C, D, E, F, H1. “Đóng PR” khác với “xóa branch/file”; không xóa lịch sử hoặc tài nguyên giảng viên. Các quyết định dưới đây dựa trên trạng thái PR kiểm tra ngày 11/11/2026; phải cập nhật lại trạng thái trước khi merge.
+
+| Trạng thái | PR / phần việc | Giữ, bỏ hoặc làm tiếp chính xác | Điều kiện hoàn thành |
+|---|---|---|---|
+| **Giữ — đã merge** | #50 (Đạt) | Giữ `rag/answerer.py`, A1, retry/fallback và tests. Sau khi Quỳnh thêm LLM production, **bỏ các định nghĩa parser/LLM dự phòng trong `except ImportError`** vì có thể che lỗi A2. Không viết lại answerer. | No-hit/score thấp: 0 call LLM; invalid citations: retry rồi degraded retrieval. |
+| **Giữ — đã merge** | #60 (Trung Anh) | Giữ `rag/chunker.py`, `rag/index.py`, fixtures, tests; không viết thêm BM25 khác. Chạy 3 truy vấn trên `data/kb` khi #62 merge. | Đúng 3 file, 14 chunks; ghi top ID và score đo thực cho 3 truy vấn. |
+| **Sửa rồi merge** | #62 (Bội Anh) | Giữ 3 file `data/kb/*.md`, `guard.py`, `test_guard.py`. Xác minh lý do GitHub báo không merge được (conflict hay kiểm tra khác), cập nhật branch, giải quyết xung đột thật. | KB 14 chunks, privacy guard hoạt động, targeted tests pass, merge vào integration. |
+| **Làm mới phần còn thiếu** | Quỳnh (A2) | Thêm `src/assistant_core/llm.py`, prompt `answer_v1.txt`, test A2 và cấu hình stub/KB tối thiểu. Không thay legacy `responder.py`. Tạo PR đến `integration/lab06-v0.6`. | `parse_draft()` từ module production kiểm tra JSON/citations, StubLLM chạy offline, nguồn hợp lệ trả `path='llm'`. |
+| **Sửa rồi merge** | #52 (Duy) | Giữ service wiring và tests. Sau khi #62 và PR Quỳnh merge, bỏ **privacy regex fallback trùng `guard.py`** khi guard production đã là dependency; phân biệt RAG không cấu hình (được phép chạy legacy) với RAG cấu hình sai (phải phát hiện). | `build_service()` dùng KB và StubLLM thật, không âm thầm chuyển legacy; fee/office giữ deterministic. |
+| **Review rồi merge** | #64 (Hùng) | Giữ trường API `path`, `escalate`, `confidence` và regression tests. Không tạo PR API mới. Bổ sung một đường `/v1/chat` dùng service RAG production sau khi #52 merge, thay vì chỉ fake service. | Schema tương thích, API/DB regression pass. |
+| **Sửa rồi merge cuối** | #56 (Tâm) | Giữ `eval/cases.jsonl`, entry point `eval/compare_paths.py`, báo cáo và smoke tests hữu ích. **Gỡ `FallbackBM25Index`, `FallbackRagAnswerer`, parser/chunker/StubLLM sao chép và `build_service_adapter` nếu các lớp này thay thế code thật**. Chuyển runner sang `BM25Index`, `RagAnswerer`, `StubLLM`, `AssistantService` production. | Chạy F 20 case và H1 25 case trên cùng HEAD, KB và config, số liệu đo thực và có SHA. |
+| **Dừng/đóng, không merge** | #49, #51, #55, #61, #63 | Không sửa tiếp các nhánh bài cá nhân. Tâm lấy câu hỏi H1 thực sự hữu ích trước; sau đó đóng PR nếu LMS không yêu cầu giữ mở. | Không còn nhánh bài cá nhân nào được đưa vào integration. |
+| **Giữ lịch sử** | #59 (Trung Anh) | Đã merge vào `exercise/lab06-starter-base`. Để nguyên, **không revert** và không đưa nguyên nhánh exercise vào integration/main. | Không có thao tác thêm. |
+
+**Không xóa các file production cần cho bài nộp:** `rag/chunker.py`, `rag/index.py`, `rag/answerer.py`, `llm.py`, prompt, `guard.py`, `service.py`, `config.py`, `data/kb/*.md`, `eval/cases.jsonl`, `eval/compare_paths.py`, `docs/lab6/path_comparison.md` và các bài test liên quan. Việc “xóa” ở đây chỉ áp dụng cho **đoạn code dự phòng/nhân đôi nằm trong PR đang chỉnh**, sau khi xác nhận module production tương ứng hoạt động.
+
+## 2.2. Danh sách công việc tiếp theo theo dependency
+
+- [ ] **Bội Anh:** xử lý trở ngại merge #62, đưa KB runtime và privacy guard vào integration.
+- [ ] **Quỳnh:** hoàn tất và merge PR `llm.py`/StubLLM/A2/prompt/tests/config; không cần LLM online.
+- [ ] **Hùng:** review và merge #64; sau khi Duy tích hợp, xác minh API nhận dữ liệu thật.
+- [ ] **Đạt:** sau khi A2 merge, bỏ parser dự phòng trong answerer, kiểm tra A1 + retry/fallback trên module thật.
+- [ ] **Duy:** cập nhật #52 theo code mới merge, gỡ logic guard trùng lặp nếu an toàn, xác minh wiring production, merge #52.
+- [ ] **Trung Anh:** đo 3 câu hỏi BM25 theo phần C và cung cấp ID, score, nhận xét cho báo cáo.
+- [ ] **Tâm:** sửa #56 để không dùng implementation RAG giả lập; chọn 5 case H1 (3 source, 2 abstain), chạy lại **bộ 20 và 25 trên cùng HEAD cuối**, hoàn thiện bảng F/3 câu nhận xét và báo cáo H1, merge #56.
+- [ ] **Cả nhóm:** chạy full regression trên HEAD tích hợp cuối và đối chiếu C/D/E/F/H1 trước khi nộp.
+
+**Quy tắc merge:** #62 và PR Quỳnh có thể làm song song. #64 có thể review/merge độc lập. #52 chỉ hoàn thành sau khi KB, LLM/A2 đã có; #56 chỉ kết luận benchmark sau khi code production đã tích hợp. Từng PR chạy targeted tests, chỉ chạy full regression cuối sau khi tất cả module đã merge.
+
+**Không làm:** viết lại S1–S3, triển khai H2/H3/bonus, gộp 35 câu H1, sửa mọi known failure E13–E15/E19 bằng mọi giá, xóa nhánh bằng force-push, tạo lớp RAG giả lập mới hoặc chỉnh sửa Lab 3–5 ngoài vấn đề tương thích thực tế.
+
+## 2.3. Checklist nghiệm thu việc dọn dẹp
+
+- [ ] Các PR bài cá nhân không còn là dependency để hoàn thiện sản phẩm chung.
+- [ ] Không còn parser/index/answerer dự phòng có thể che lỗi import production.
+- [ ] Khi cấu hình RAG hợp lệ, `build_service()` tạo `RagAnswerer` dùng StubLLM; khi cấu hình không hợp lệ, test phát hiện vấn đề.
+- [ ] Evaluation dùng component production và cho kết quả 20/25 case có thể tái lập trên cùng commit.
+- [ ] Không có regression Lab 3–5; đầy đủ minh chứng C/D/E/F/H1.
+
+---
+
 ## 3. Phân công 7 người — CHỈ công việc còn phải làm
 
 ### TV1 — Duy: sửa PR #52, tích hợp vào service
