@@ -30,7 +30,11 @@ def _front_matter(raw: str) -> tuple[dict[str, str], str]:
 
 
 def chunk_markdown(path: Path) -> list[Chunk]:
-    """Read lecturer-style flat frontmatter and one chunk per '# ' section."""
+    """Read flat frontmatter and headings of the form ``# <section-id> <title>``.
+
+    The section ID is the first token of each heading and must be nonempty
+    and unique within the document, as in the lecturer KB samples.
+    """
     metadata, body = _front_matter(path.read_text(encoding="utf-8"))
     doc_id = metadata.get("doc_id", path.stem)
     chunks = []

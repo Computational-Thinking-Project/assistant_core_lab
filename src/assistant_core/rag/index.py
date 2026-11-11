@@ -49,6 +49,8 @@ class BM25Index:
         if k <= 0 or not self.avgdl:
             return []
         tokens = tokenize(query)
+        if not tokens:
+            return []
         scores = []
         for document, frequencies in zip(self.docs, self.tf, strict=True):
             length = len(document)
