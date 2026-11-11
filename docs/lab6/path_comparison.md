@@ -34,7 +34,7 @@ The 4 failing cases (E13, E14, E15, E19) are characterized as follows:
 
 1. **E13 (`when is tuition due` -> expected `F26#3`):** Lexical BM25 search failed because the query word "due" does not appear verbatim in `F26#3` (which uses the title "Payment deadline" and the body phrase "paid by the end of week 6"). Without a synonym thesaurus or dense semantic embeddings, exact token matching cannot bridge the vocabulary difference.
 2. **E14 (`can I take 32 credits` -> expected `H26#6.1`):** The handbook section mentions allowable loads between 14 and 30 credits and requiring approval for more than 30 credits. BM25 token matching fails on the number 32 and lacks numerical range reasoning.
-3. **E15 (`how long can I keep a library book` -> expected `S26#1`):** The question uses colloquial phrasing "keep" while the document uses "borrow up to 5 books for 14 days". Keyword overlap is insufficient to cross the relevance score threshold.
+3. **E15 (`how long can I keep a library book` -> expected `S26#1`):** As characterized in the Lab 06 tutorial (Part F.2), the primary root cause is **router misclassification**: the presence of the word "library" triggers the deterministic office directory router, misclassifying the inquiry to the library room location (`B.201`) on the deterministic path rather than forwarding it to the knowledge base retrieval path (`S26#1`).
 4. **E19 (`is the final exam open-book` -> expected abstain):** Lexical matching against the term "exam" yielded a match against `H26#7.2` ("Exam absence"), causing the system to return an irrelevant medical absence clause rather than abstaining.
 
 ---
@@ -47,5 +47,5 @@ The evaluation module includes 7 integration smoke tests in `tests/test_rag_inte
 - `test_smoke_student_card_replacement_retrieves_source`: Verifies case E05 retrieves policy S26#3.
 - `test_smoke_out_of_scope_france_abstains`: Verifies case E16 abstains on "capital of France".
 - `test_smoke_privacy_guard_intercepts_unauthorized_records`: Verifies case E18 rejects unauthorized student record inquiries.
-- `test_smoke_degraded_fallback_when_llm_fails`: Verifies that downstream LLM exceptions gracefully degrade to retrieval fallback with `degraded=True`.
+- `test_smoke_degraded_fallback_when_llm_fails`: Verifies that downstream LLM exceptions gracefully degrade to retrieval fallback with `degraded=True` (marked `integration-pending` until production `RagAnswerer` from TV3 is merged into integration).
 - `test_smoke_deterministic_path_never_answers_rules`: Verifies that deterministic path without retrieval safely abstains on handbook policy questions.

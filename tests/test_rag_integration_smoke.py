@@ -8,7 +8,6 @@ Scope: Verifies end-to-end integration contracts across deterministic tools,
 
 from __future__ import annotations
 
-import inspect
 from pathlib import Path
 from typing import Any
 
@@ -17,9 +16,8 @@ import pytest
 from assistant_core.config import load_settings
 from assistant_core.errors import ProviderError
 from assistant_core.knowledge import Handbook, OfficeDirectory
-from assistant_core.models import Intent, Message, Response, Source
+from assistant_core.models import Intent, Message
 from assistant_core.responder import TemplateResponder
-from assistant_core.service import AssistantService
 from eval.compare_paths import (
     FallbackBM25Index,
     FallbackRagAnswerer,
@@ -129,11 +127,22 @@ def test_smoke_privacy_guard_intercepts_unauthorized_records(base_service):
 
 
 def test_smoke_degraded_fallback_when_llm_fails(shared_index):
-    """When LLM provider fails, system must degrade gracefully to fallback or escalate."""
+    """When LLM provider fails, production RagAnswerer must degrade gracefully to retrieval.
+
+    Verifies F01 requirement: exercises actual application RagAnswerer rather than test double.
+    Marked integration-pending until TV3's production RagAnswerer (PR #50) is merged into integration.
+    """
+    try:
+        from assistant_core.rag.answerer import RagAnswerer
+    except ImportError:
+        pytest.skip(
+            "integration-pending: Production RagAnswerer (TV3 - PR #50) is not yet merged into integration branch"
+        )
+
     class FailingLLM:
         name = "failing_mock"
 
-        def generate_answer(self, question: str, hits: Any, prompt_version: str = "answer_v1"):
+        def complete(self, prompt: str) -> str:
             raise ProviderError("LLM downstream service timed out")
 
     s = load_settings()
@@ -141,36 +150,14 @@ def test_smoke_degraded_fallback_when_llm_fails(shared_index):
     offices = OfficeDirectory.from_csv(data_dir / "offices.csv")
     handbook = Handbook.from_json(data_dir / "handbook.json")
 
-    class ResilientRagAnswerer(FallbackRagAnswerer):
-        def answer(self, question: str) -> Response:
-            try:
-                return super().answer(question)
-            except ProviderError:
-                # Degraded fallback to pure retrieval
-                hits = self.index.search(question, k=1)
-                if hits:
-                    top = hits[0].chunk
-                    return Response(
-                        answer=f"{top.title}: {top.text}",
-                        intent=getattr(Intent, "RULE", "rule"),
-                        sources=[Source(id=top.id, title=top.title)],
-                        path="retrieval_fallback",
-                        degraded=True,
-                    )
-                return Response(
-                    answer="Service degraded. Please contact the Training Office.",
-                    intent=getattr(Intent, "UNKNOWN", "unknown"),
-                    path="abstain",
-                    escalate=True,
-                    degraded=True,
-                )
-
-    rag = ResilientRagAnswerer(index=shared_index, llm=FailingLLM(), min_score=2.0)
+    rag = RagAnswerer(index=shared_index, llm=FailingLLM(), min_score=2.0)
     svc = build_service_adapter(s, offices, handbook, TemplateResponder(), rag)
 
     resp = svc.handle(Message(text="can I register my thesis with 118 credits"))
     assert resp.degraded is True
-    assert len(resp.sources) > 0 or getattr(resp, "escalate", False)
+    assert getattr(resp, "path", "") == "retrieval"
+    assert len(getattr(resp, "sources", [])) > 0
+    assert any("H26" in getattr(src, "id", "") for src in getattr(resp, "sources", []))
 
 
 def test_smoke_deterministic_path_never_answers_rules(shared_index):
