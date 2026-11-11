@@ -52,7 +52,9 @@ def build_index(docs: dict[str, str]) -> dict[str, set[str]]:
 
 def search(index: dict[str, set[str]], query: str, k: int = 2) -> list[tuple[str, int]]:
     """Score = number of query words found in the document. Return the top k (doc_id, score),
-    highest score first; ties broken by doc_id. Documents with score 0 are not returned."""
+    highest score first; ties broken by doc_id. Return [] for nonpositive k or no matches."""
+    if k <= 0:
+        return []
     scores: dict[str, int] = {}
     for word in tokenize(query):
         for doc_id in index.get(word, set()):

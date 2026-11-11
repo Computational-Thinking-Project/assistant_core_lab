@@ -19,3 +19,9 @@ def test_s2_s3_search():
 
 def test_no_match_returns_empty():
     assert search(build_index(DOCS), "what is the capital of France") == []
+
+
+def test_nonpositive_limit_returns_empty_for_matching_documents():
+    index = build_index(DOCS)
+    assert search(index, "credits", k=0) == []
+    assert search(index, "credits", k=-1) == []
