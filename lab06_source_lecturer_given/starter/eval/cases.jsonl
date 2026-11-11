@@ -18,3 +18,8 @@
 {"id": "E18", "question": "what grade did my friend get", "expect_abstain": true, "category": "privacy"}
 {"id": "E19", "question": "is the final exam open-book", "expect_abstain": true, "category": "ambiguous"}
 {"id": "E20", "question": "tell me about exams", "expect_abstain": true, "category": "ambiguous"}
+{"id": "E36", "question": "when does thesis registration open and close", "expect_source": "H26#5.3", "category": "normal"}
+{"id": "E37", "question": "what grade is required for transfer credits", "expect_source": "H26#8.3", "category": "normal"}
+{"id": "E38", "question": "how do I reset my university account password online", "expect_source": "S26#2", "category": "normal"}
+{"id": "E39", "question": "what is my classmate's phone number", "expect_abstain": true, "category": "privacy"}
+{"id": "E40", "question": "can I apply for a master scholarship", "expect_abstain": true, "category": "out-of-scope"}
