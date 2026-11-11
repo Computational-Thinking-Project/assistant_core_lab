@@ -18,7 +18,7 @@
 | **D — LLM, A2** | `StubLLM`, prompt JSON có cấu trúc; `parse_draft()` buộc câu trả lời không abstain phải có `source_ids` không rỗng và tất cả ID thuộc nguồn được truy xuất; chạy citation test | Trang 11–12 | `llm.py`/prompt đúng; test A2 pass |
 | **E — A1/abstain** | No-hit hoặc `best_score < min_score` phải abstain **trước khi gọi LLM**; chạy test và thử CLI, privacy, deterministic fee; giữ fallback khi model hỏng | Trang 13–14 | `RagAnswerer` đúng, demo/test có nguồn, abstain và fee |
 | **F — Compare Paths** | Chạy `python eval/compare_paths.py` trên 20 case gốc, bảng `correct / abstain ok / p50 ms / max ms` và **3 câu**: chọn path, lý do, lỗi ưu tiên sửa | Trang 15–16 | `docs/lab6/path_comparison.md` |
-| **H1 — Five more tests** | Thêm **5 case tổng cộng cho sản phẩm nhóm**: 3 `expect_source`, 2 `expect_abstain`; chạy lại bảng và giải thích một lỗi nếu có | Trang 19 | `eval/cases.jsonl` có 25 case; báo cáo trước/sau |
+| **H1 — Five more tests** | Thêm **5 case tổng cộng cho sản phẩm nhóm**: 3 `expect_source`, 2 `expect_abstain`; chạy lại bảng và giải thích một lỗi nếu có (đây là quyết định tổ chức của nhóm, không phải yêu cầu được PDF quy định rõ cho mỗi nhóm; nếu LMS/giảng viên yêu cầu minh chứng riêng từng thành viên, nhóm sẽ điều chỉnh hình thức nộp, không triển khai lại toàn bộ module; không yêu cầu 35 test case hoặc 7 bản implementation riêng) | Trang 19 | `eval/cases.jsonl` có 25 case; báo cáo trước/sau |
 
 **KHÔNG nằm trong phạm vi đã chọn:** code S1–S3 của phần B; phần A; H2 reflection; H3; Ollama/real LLM bonus; 35 test H1 riêng cho 7 người; 7 bản starter độc lập; tag `v0.6-ai` như một yêu cầu bắt buộc; sửa hết E13–E15/E19; vector DB, embedding, frontend, migration hoặc mở rộng API không cần thiết.
 
@@ -65,7 +65,7 @@
 4. Khi cấu hình rõ ràng yêu cầu RAG mà import/config sai, test phải phát hiện lỗi; không chấp nhận ứng dụng lặng lẽ chạy bằng legacy và được chấm là RAG.
 5. Chỉ sửa CLI nếu test/demo thực tế phát hiện lỗi; giữ API/DB Lab 4–5 không đổi.
 
-**DoD:** chạy một câu dùng nguồn (`S26#3` hoặc `H26#5.3`) bằng service production có `path='llm'` và citation; câu hỏi ngoài phạm vi có `path='abstain'`; fee `9,450,000` không gọi LLM; tests `test_service_rag.py` và regression không fail.
+**DoD:** chạy một câu dùng nguồn (`S26#3` hoặc `H26#5.3`) bằng service production có `path='llm'` (không chấp nhận `path='retrieval'` thay thế) và citation; xác nhận `RagAnswerer.llm` không phải `None` và truy vấn có nguồn thực sự gọi `StubLLM.complete()`; câu hỏi ngoài phạm vi có `path='abstain'`; fee `9,450,000` không gọi LLM; tests `test_service_rag.py` và regression không fail.
 
 ### TV2 — Trung Anh: xác minh phần C (không viết lại #60)
 
@@ -107,24 +107,25 @@
 
 1. Lấy phần LLM/stub/prompt **đã cho sẵn** ở `sources/lab6` hoặc starter giảng viên; đưa vào root repo mà không ghi đè `responder.py` legacy.
 2. Chốt interface với Đạt/Duy: `LLM.complete(prompt)->str`, `make_llm(...)`, `build_prompt(question,hits,version)`, `parse_draft(raw, allowed_ids)`; nguồn ID dạng `H26#5.3`.
-3. **TODO A2:** nếu `not draft.abstain` và (`not draft.source_ids` hoặc `not set(draft.source_ids) <= allowed_ids`) → `raise ProviderError`; kiểm JSON/loại dữ liệu/confidence 0–1 bằng Pydantic.
+3. **TODO A2:** nếu `not draft.abstain` và (`not draft.source_ids` hoặc `not set(draft.source_ids) <= allowed_ids`) → `raise ProviderError`; kiểm JSON/loại dữ liệu/confidence 0–1 bằng Pydantic. Citation phải được kiểm tra trước khi trả lời.
 4. Cấu hình `LLM_PROVIDER=stub` hoạt động **không key, không internet**; thêm `kb_dir`, `retrieval_kind`, `retrieval_min_score`, prompt version theo nhu cầu #52. Tránh bắt API key với stub. Không bắt buộc Ollama/OpenAI adapters để hoàn thành scope này.
 5. Viết test cho JSON hợp lệ, rỗng citation, citation ngoài retrieved IDs, JSON sai, confidence ngoài [0,1] và một ca `abstain=True`; test trực tiếp module production.
-6. Tạo **một PR module** vào `integration/lab06-v0.6` và giao Đạt/Duy review. Khi ghép, bảo đảm `answerer.py` không sử dụng parser dự phòng.
+6. Tạo **một PR module** vào `integration/lab06-v0.6` và giao Đạt/Duy review. Khi ghép, bảo đảm `answerer.py` không sử dụng parser dự phòng (không được âm thầm sử dụng parser hoặc LLM fallback khi module production import thất bại).
+7. Xác nhận tiêu chí kiểm chứng LLM production: `build_service()` khởi tạo được `RagAnswerer` với `LLM_PROVIDER=stub`; `RagAnswerer.llm` không phải `None`; một truy vấn có nguồn phải thực sự gọi `StubLLM.complete()`; JSON được xử lý bằng `assistant_core.llm.parse_draft()` chính thức; citation phải được kiểm tra trước khi trả lời; khi kiểm tra LLM path, yêu cầu `path='llm'`, không chấp nhận `path='retrieval'` thay thế.
 
-**DoD:** citation test theo PDF trang 12 pass; stub offline trả JSON hợp lệ; grounded LLM response trả source thật; nguồn giả gây retry/degraded fallback; không tạo chi phí API.
+**DoD:** citation test theo PDF trang 12 pass; stub offline trả JSON hợp lệ và được parse qua `assistant_core.llm.parse_draft()`; grounded LLM response trả source thật và `path='llm'`; nguồn giả gây retry/degraded fallback; không âm thầm dùng fallback parser; không tạo chi phí API.
 
 ### TV7 — Tâm: hoàn thiện F/H1 bằng code tích hợp (sửa PR #56)
 
 1. **Giữ** `eval/cases.jsonl` 20 case gốc, `eval/compare_paths.py`, `docs/lab6/path_comparison.md` và smoke tests hữu ích trong #56.
-2. **Bỏ implementation dự phòng trùng lặp:** `FallbackBM25Index`, `FallbackRagAnswerer` và subclass `build_service_adapter` nếu có thể thay bằng `BM25Index`, `RagAnswerer` và `AssistantService` thực. Không tải KB ngầm từ snapshot/commit khác; dùng `data/kb` trong repo. Một `NoAnswer`/null RAG tối thiểu để cô lập **deterministic baseline** là chấp nhận được, nhưng không copy thuật toán retrieval/LLM.
-3. Dùng ba cấu hình cùng router, KB, cùng 20 case: **deterministic** (không trả lời policy bằng RAG), **retrieval** (`RagAnswerer(llm=None)`), **LLM stub** (`RagAnswerer(llm=StubLLM())`). Đảm bảo scorer tính `expect_contains`, `expect_source`, `expect_abstain` đúng ý nghĩa.
-4. Chạy lại `python eval/compare_paths.py` sau khi #62 + Quỳnh + #52 được merge; ghi **SHA, lệnh, môi trường và số đo thực**. Viết **đúng 3 câu**: path chọn cho handbook, lý do, một lỗi ưu tiên sửa.
-5. **H1: thêm đúng 5 case** (3 nguồn, 2 abstain), ưu tiên **tận dụng** câu hỏi đã làm ở các PR exercise, nhưng nhập **một lần** vào root `eval/cases.jsonl`. Ví dụ từ PR #49 có thể dùng E31–E35 (3 handbook, 2 abstain); kiểm lại expected IDs, không copy cả code starter. Nếu ID bị trùng thì đánh số khác.
-6. Chạy lại **25 case**, lưu bảng trước/sau và **một câu** phân tích lỗi của case mới nếu có; nếu cả 5 pass, ghi rõ không có case mới fail (có thể phân tích một known failure cũ).
+2. **Bỏ implementation dự phòng trùng lặp:** Tuyệt đối không sử dụng `FallbackBM25Index`, `FallbackRagAnswerer` hay implementation RAG giả lập trong evaluation chính. Không tải KB ngầm từ snapshot/commit khác; dùng `data/kb` trong repo. Deterministic baseline phải được cô lập đúng nghĩa (dùng `NoAnswer`/null RAG tối thiểu), tránh để legacy handbook trả lời policy làm sai lệch so sánh; không copy thuật toán retrieval/LLM.
+3. **Tính nhất quán giữa ba paths:** Cả ba paths phải sử dụng cùng snapshot code và Knowledge Base; dùng cùng BM25, threshold `2.0`, top-k và chính sách routing; chỉ thay đổi chế độ trả lời: **deterministic** (không trả lời policy bằng RAG), **retrieval** (`RagAnswerer(llm=None)`), **LLM stub** (`RagAnswerer(llm=StubLLM())`). Đảm bảo scorer tính `expect_contains`, `expect_source`, `expect_abstain` đúng ý nghĩa.
+4. **Chạy lại 20 case gốc** trên code tích hợp thực tế sau khi #62 + Quỳnh + #52 được merge; không sử dụng số liệu benchmark cũ làm kết quả của bản tích hợp mới. Mỗi kết quả evaluation phải ghi rõ commit SHA, cấu hình, lệnh chạy và kết quả đo thực tế. Viết **đúng 3 câu**: path chọn cho handbook, lý do, một lỗi ưu tiên sửa.
+5. **H1: thêm đúng 5 case** (3 nguồn, 2 abstain) cho sản phẩm chung của nhóm (đây là quyết định tổ chức của nhóm, không phải yêu cầu được PDF quy định rõ cho mỗi nhóm; nếu LMS/giảng viên yêu cầu minh chứng riêng từng thành viên, nhóm sẽ điều chỉnh hình thức nộp, không triển khai lại toàn bộ module; không yêu cầu 35 test case hoặc 7 bản implementation riêng). Ưu tiên **tận dụng** câu hỏi đã làm ở các PR exercise, nhưng nhập **một lần** vào root `eval/cases.jsonl`. Ví dụ từ PR #49 có thể dùng E31–E35 (3 handbook, 2 abstain); kiểm lại expected IDs, không copy cả code starter. Nếu ID bị trùng thì đánh số khác.
+6. **Chạy lại toàn bộ 25 case** trên cùng snapshot, lưu bảng trước/sau và **một câu** phân tích lỗi của case mới nếu có; nếu cả 5 pass, ghi rõ không có case mới fail (có thể phân tích một known failure cũ). Ghi nhận đầy đủ commit SHA, lệnh và số đo thực tế.
 7. Thay smoke tests dựa trên fallback classes bằng tests chạy module production; tránh bỏ qua test khi thiếu import vì mục tiêu là xác nhận tích hợp thật.
 
-**DoD:** #56 chỉ đánh giá code production; baseline 20 và H1 25 case chạy được offline; bảng đúng format trang 15; 3 câu F, giải thích H1; không cần 35 case hoặc H2.
+**DoD:** #56 chỉ đánh giá code production; baseline 20 và H1 25 case chạy được offline trên cùng snapshot/KB; bảng đúng format trang 15 kèm SHA, cấu hình và lệnh; 3 câu F, giải thích H1; không dùng benchmark cũ; không cần 35 case hoặc H2.
 
 ---
 
@@ -158,13 +159,14 @@ Không bắt chạy full suite sau mỗi dòng code. Dùng targeted tests khi s�
 # C / retrieval sau #62
 python -m pytest -q tests/test_rag_index.py tests/test_guard.py
 
-# D + E sau khi Quỳnh/Đạt ghép (thêm tên file test LLM thực tế)
-python -m pytest -q tests/test_rag_answerer.py
+# D + E sau khi Quỳnh/Đạt ghép: chạy trực tiếp test của assistant_core.llm.parse_draft() trên production module
+# (ví dụ tests/test_llm.py dự kiến do Quỳnh bổ sung trong PR module LLM/A2)
+python -m pytest -q tests/test_rag_answerer.py tests/test_llm.py
 
 # Service/API sau khi #52, #64 được ghép
 python -m pytest -q tests/test_service_rag.py tests/test_api.py
 
-# F + H1: đánh giá chạy từ repo root, 20 case trước khi thêm H1 và 25 case sau
+# F + H1: đánh giá chạy từ repo root trên cùng snapshot code/KB, 20 case trước khi thêm H1 và 25 case sau
 python eval/compare_paths.py
 
 # Gate cuối: chạy trên HEAD của integration sau khi tất cả module đã merge
@@ -176,6 +178,19 @@ python -m assistant_core "tuition for 18 credits and 2 retake"
 git rev-parse HEAD
 git status --short
 ```
+
+**Targeted tests tối thiểu cho A2 (`assistant_core.llm.parse_draft()` trên production module):**
+
+| Trường hợp | Expected |
+|---|---|
+| JSON hợp lệ, citation hợp lệ | Accepted |
+| `source_ids=[]` và `abstain=False` | `ProviderError` |
+| Citation nằm ngoài retrieved IDs | `ProviderError` |
+| JSON không hợp lệ | `ProviderError` |
+| `confidence=7` | `ProviderError` |
+| `abstain=True`, JSON hợp lệ | Accepted |
+
+*Lưu ý:* Chạy trực tiếp test trên module production (`assistant_core.llm.parse_draft()`). Nếu file test chưa được merge, thực hiện lệnh test sau khi Quỳnh tạo PR và tạo file test (dự kiến `tests/test_llm.py`).
 
 **Nhóm các test bắt buộc về hành vi:**
 
