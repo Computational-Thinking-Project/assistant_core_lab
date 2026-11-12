@@ -69,7 +69,7 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-11-07 | Nhật Quỳnh (@nhatquynh1107) | Codex | Complete integrated Lab 05 QA on `c2b7529` | Quỳnh ran regression, SQL practice, migration/seed, analytics and a manual restart probe; Codex checked the supplied results, ran a separate two-process Uvicorn probe, verified privacy and Git hygiene, and updated the QA report. The release tag remains unverified. |
 | 2026-11-08 | Nhật Quỳnh (@nhatquynh1107) | Codex | Verify published `v0.5-data` release tag | Codex re-ran regression, practice, migration/seed, analytics, a two-process Uvicorn restart and Git hygiene on tagged commit `5ac4107`, then updated the QA report. Quỳnh supplied the tag details and will review the recorded results. |
 | 2026-11-09 | Đạt (@Thanhdat3010) | Antigravity (Gemini) | Implement Lab 06 Response contract extension and official RagAnswerer module | Consulted AI for Python type hint syntax and Pydantic field defaults. Wrote, tested, and benchmarked all code and evaluation cases independently. |
-| 2026-11-10 | Bội Anh (@htbaax) | Antigravity (Gemini) | Lab 06 Knowledge Base integration & Deterministic Privacy Guard (TV5) | Ported 3 sample Markdown Knowledge Base files into `data/kb/` (14 chunks total: `fees_2026.md`, `handbook_2026.md`, `services_2026.md`) with metadata intact. Implemented deterministic `is_private_request` guard and `PRIVATE_REPLY` in `src/assistant_core/guard.py` to intercept unauthorized PII inquiry before retrieval/LLM, and added unit test suite in `tests/test_guard.py` (25 passed, full suite passed). |
+| 2026-11-10 | Bội Anh (@htbaax) | Antigravity (Gemini) | Lab 06 Knowledge Base integration & Deterministic Privacy Guard (TV5) | Ported 3 sample Markdown Knowledge Base files into `data/kb/` (14 chunks total) with metadata intact. Implemented deterministic `is_private_request` guard and `PRIVATE_REPLY` in `src/assistant_core/guard.py` covering grades, GPA, phone, address, email, and 8-digit student IDs, with unit tests in `tests/test_guard.py`. Service wiring and integrated verification remain pending in PR #52. |
 | 2026-11-11 | Đình Hùng (@benalexx007) | Antigravity (Gemini) | Lab 06 TV4 REST API ChatResponse contract extension and Lab 4-5 regression tests | Added additive `escalate`, `path`, and `confidence` fields to `ChatResponse` in `src/assistant_api/schemas.py`, documented them in `docs/api_contract.md`, added targeted API/DB tests in `tests/test_api.py` covering legacy defaults, abstain, grounded `llm`, and degraded `retrieval` responses, and verified full API/DB/persistence regression suite. |
 
 ## Lab06 TV5 - Knowledge Base Integration & Privacy Guard
@@ -83,12 +83,14 @@ Author: Hà Trần Bội Anh (@htbaax) - Member 5 (TV5)
    - Clarified that the Markdown files represent teaching/mock data and not verified university policy.
 
 2. **Deterministic Privacy Guard (`src/assistant_core/guard.py`):**
-   - Implemented `is_private_request(text: str) -> bool` and `PRIVATE_REPLY` to intercept inquiries requesting grades, scores, GPA, phone numbers, addresses of other students, or 8-digit student IDs.
-   - Operates deterministically via compiled regular expressions before any retrieval or LLM call, ensuring zero PII leakage and zero unnecessary LLM invocations.
-   - Allows legitimate policy questions (e.g., *"what is my GPA requirement for the thesis"*) to pass through unimpeded.
+   - Implemented `is_private_request(text: str) -> bool` and `PRIVATE_REPLY` to intercept inquiries requesting grades, scores, GPA, phone numbers, addresses, emails, or 8-digit student IDs.
+   - Evaluates queries deterministically via compiled regular expressions covering student records keywords (`grade`, `score`, `gpa`, `result`, `phone`, `address`, `email`, `mail`, `contact`) paired with third-party markers (`friend`, `classmate`, `roommate`, `another student`, `other student`), and 8-digit student ID patterns.
+   - Allows legitimate student inquiries (e.g., *"what is my GPA requirement for the thesis"*) to pass through.
+   - **Integration Boundary:** This PR provides and verifies the standalone guard predicate contract (`is_private_request`, `PRIVATE_REPLY`). The end-to-end service wiring (calling the guard before retrieval and model execution in `AssistantService`) and integrated private request tests are owned by and remain pending in PR #52.
+   - **Pattern Limitations:** The guard relies on deterministic keyword/regex heuristics and does not claim semantic coverage of all possible unstructured PII queries.
 
 3. **Automated Verification:**
-   - Authored `tests/test_guard.py` with 9 positive PII cases, 13 negative/normal cases, refusal content verification, and runtime KB structure validation (25 passed).
+   - Authored `tests/test_guard.py` with 14 positive PII cases (including email and student ID regression checks), 13 negative/normal policy cases, refusal content verification, regex pattern structure validation, and runtime KB structure validation (30 passed).
    - Executed full repository regression across Labs 01–06.
 
 ## Lab05 H3 - Schema Design Review & Data Privacy (issue #42)

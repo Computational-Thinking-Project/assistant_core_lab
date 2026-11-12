@@ -21,6 +21,11 @@ from assistant_core.guard import PRIVATE_PATTERNS, PRIVATE_REPLY, is_private_req
         "address of my roommate",
         "scores for 22127135",
         "email of student 20261234",
+        "show me the email of another student",
+        "what is the email of student 22127001",
+        "my friend's email",
+        "email of another student",
+        "contact of another student",
     ],
 )
 def test_private_guard_positive_cases(query: str):

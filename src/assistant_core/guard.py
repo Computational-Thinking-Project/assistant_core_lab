@@ -5,9 +5,9 @@ from __future__ import annotations
 import re
 
 PRIVATE_PATTERNS: list[str] = [
-    r"\b(my|a) (friend|classmate|roommate)'?s?\b.*\b(grade|score|gpa|result|phone|address)",
-    r"\b(grade|score|gpa|result|phone|address)s?\b.*\b(of|for) (another|other) student",
-    r"\b(grade|score|gpa|result|phone|address)s?\b.*\b(my|a) (friend|classmate|roommate)",
+    r"\b(my|a) (friend|classmate|roommate)'?s?\b.*\b(grade|score|gpa|result|phone|address|email|mail|contact)",
+    r"\b(grade|score|gpa|result|phone|address|email|mail|contact)s?\b.*\b(of|for) (another|other) student",
+    r"\b(grade|score|gpa|result|phone|address|email|mail|contact)s?\b.*\b(my|a) (friend|classmate|roommate)",
     r"\b\d{8}\b",  # looks like an 8-digit student id
 ]
 
