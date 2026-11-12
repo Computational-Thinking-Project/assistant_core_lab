@@ -36,6 +36,9 @@ from assistant_core.guard import PRIVATE_PATTERNS, PRIVATE_REPLY, is_private_req
         "show another student's ID",
         "student ID of another student",
         "student number of my classmate",
+        # Academic field with "for" target
+        "Show me the GPA for another student",
+        "What is the score for my friend?",
         # F03 regression: Policy wording must NOT override an explicit request for another person's record
         "What is the GPA of another student? I need it to check eligibility.",
         "What grade did my friend get? I need the minimum for a scholarship.",
@@ -81,6 +84,8 @@ def test_private_guard_positive_cases(query: str):
         "What is another student's minimum GPA?",
         "Can a friend with GPA 3.0 apply for honours?",
         "What GPA cutoff applies to other students for scholarship?",
+        "What is the GPA for another student to register a thesis?",
+        "What is the score for a classmate to pass?",
         "",
         "   ",
     ],
