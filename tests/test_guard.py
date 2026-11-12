@@ -59,12 +59,22 @@ def test_private_guard_positive_cases(query: str):
         "course withdrawal refund deadline",
         "how to reset my password",
         "what is the capital of France",
+        "My friend has ideas for a thesis",
+        "Can another student identify the Training Office?",
+        "Can my friend register a thesis with GPA 2.0?",
+        "What GPA does a classmate need for thesis?",
+        "What GPA does another student need to register a thesis?",
+        "What score does a classmate need to pass?",
+        "What is the GPA requirement for another student?",
+        "What is the minimum GPA for another student to take thesis?",
+        "Can a classmate graduate with GPA 2.5?",
+        "Can a friend transfer credits with grade 4.0?",
         "",
         "   ",
     ],
 )
 def test_private_guard_negative_cases(query: str):
-    """Guard must NOT block legitimate user inquiries or policy questions."""
+    """Guard must NOT block legitimate user inquiries, complete token non-fields, or eligibility policy questions."""
     assert is_private_request(query) is False
 
 
