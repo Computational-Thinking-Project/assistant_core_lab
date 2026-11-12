@@ -48,6 +48,16 @@ from assistant_core.guard import PRIVATE_PATTERNS, PRIVATE_REPLY, is_private_req
         "Can you tell me my friend's GPA? We are checking if they are eligible for thesis.",
         "Show another student's GPA to see if they meet the requirement.",
         "What is another student's email? It is required for the group project.",
+        # Attainment and multi-modifier possessive requests
+        "What is another student's current cumulative GPA?",
+        "What grade has my friend received?",
+        "What is the grade my friend got?",
+        "What is my friend's overall cumulative GPA?",
+        "What is a classmate's current GPA?",
+        "What score has another student got?",
+        "What GPA has my roommate achieved?",
+        "What is the score another student got?",
+        "What is the GPA my classmate received?",
     ],
 )
 def test_private_guard_positive_cases(query: str):
@@ -88,12 +98,22 @@ def test_private_guard_positive_cases(query: str):
         "What GPA cutoff applies to other students for scholarship?",
         "What is the GPA for another student to register a thesis?",
         "What is the score for a classmate to pass?",
+        # General guidance and advice requests (NOT private record retrieval)
+        "How can my friend improve GPA?",
+        "Can my friend calculate GPA?",
+        "My friend needs GPA advice",
+        "How does another student improve GPA?",
+        "How can a classmate calculate GPA?",
+        "Another student needs GPA advice",
+        "My friend needs GPA help",
+        "Where can my friend get GPA guidance?",
+        "Can my roommate calculate GPA?",
         "",
         "   ",
     ],
 )
 def test_private_guard_negative_cases(query: str):
-    """Guard must NOT block legitimate inquiries, non-PII tokens, or legitimate policy questions."""
+    """Guard must NOT block legitimate inquiries, non-PII tokens, or legitimate policy/guidance questions."""
     assert is_private_request(query) is False
 
 
