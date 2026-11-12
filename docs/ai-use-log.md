@@ -86,13 +86,14 @@ Author: Hà Trần Bội Anh (@htbaax) - Member 5 (TV5)
    - Implemented `is_private_request(text: str) -> bool` and `PRIVATE_REPLY` to intercept inquiries requesting grades, scores, GPA, phone numbers, addresses, emails, or third-party student IDs / student numbers.
    - Evaluates queries deterministically via compiled regular expressions covering complete student records keywords (`grade`, `score`, `gpa`, `result`, `phone`, `address`, `email`, `mail`, `contact`, `student id`, `student number`, `id number`, `mssv`, `id`) with explicit word boundaries (`\b`), preventing false positives on words like `ideas` or `identify`.
    - Distinctly differentiates personal record inquiries from published rule / eligibility questions (e.g., *"Can my friend register a thesis with GPA 2.0?"*, *"What GPA does a classmate need for thesis?"*), ensuring curriculum and handbook rule inquiries pass through to retrieval.
-   - Allows legitimate student inquiries (e.g., *"what is my GPA requirement for the thesis"*) to pass through.
+   - Guarantees strict precedence for explicit third-party private record requests: general eligibility or policy wording in the query cannot override an explicit request for another student's record (e.g., *"What is the GPA of another student? I need it to check eligibility."*, *"What grade did my friend get? I need the minimum for a scholarship."*, *"What is another student phone number for eligibility?"* remain strictly blocked).
+   - Allows legitimate student inquiries (e.g., *"what is my GPA requirement for the thesis"*, *"What is the minimum GPA for another student to take thesis?"*) to pass through.
    - **Integration Boundary:** This PR provides and verifies the standalone guard predicate contract (`is_private_request`, `PRIVATE_REPLY`). The end-to-end service wiring (calling the guard before retrieval and model execution in `AssistantService`) and integrated private request tests are owned by and remain pending in PR #52.
    - **Pattern Limitations:** The guard relies on deterministic keyword/regex heuristics and does not claim semantic coverage of all possible unstructured PII queries.
 
 3. **Automated Verification:**
-   - Authored `tests/test_guard.py` with 24 positive PII cases (including third-party student ID/number inquiries, possessive forms, email, and student ID regression checks), 25 negative policy and eligibility regression cases, refusal content verification, regex pattern structure validation, and runtime KB structure validation (52 passed).
-   - Executed full repository regression across Labs 01–06 (195 passed).
+   - Authored `tests/test_guard.py` with 30 positive PII cases (including third-party student ID/number inquiries, possessive forms, email, and mixed private/policy wording regression checks), 29 negative policy and eligibility regression cases, refusal content verification, regex pattern structure validation, and runtime KB structure validation (63 passed).
+   - Executed full repository regression across Labs 01–06 (206 passed).
 
 ## Lab05 H3 - Schema Design Review & Data Privacy (issue #42)
 

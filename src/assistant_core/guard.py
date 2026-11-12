@@ -4,39 +4,28 @@ from __future__ import annotations
 
 import re
 
-_FIELDS = (
+_CONTACT_FIELDS = (
     r"(?:student (?:ids?|numbers?)|id numbers?|phone (?:numbers?)|(?:email|mail)\s+(?:addresses?|address)|mssv"
-    r"|grade point average|grades?|scores?|gpas?|results?|phones?|address(?:es)?|emails?|mails?|contacts?|ids?)"
+    r"|phones?|address(?:es)?|emails?|mails?|contacts?|ids?)"
 )
-
+_ACADEMIC_FIELDS = r"(?:grade point average|grades?|scores?|gpas?|results?)"
+_FIELDS = rf"(?:{_CONTACT_FIELDS}|{_ACADEMIC_FIELDS})"
 _TARGET = r"(?:(?:another|other)\s+students?|(?:my|a)\s+(?:friend|classmate|roommate))"
 
-PRIVATE_PATTERNS: list[str] = [
-    rf"\b(my|a) (friend|classmate|roommate)(?:'s|s'|'|s)?\s+(?:\w+\s+)?{_FIELDS}\b",
-    rf"\b(another|other) students?(?:'s|s'|'|s)?\s+(?:\w+\s+)?{_FIELDS}\b",
-    rf"\b{_FIELDS}\b\s+(?:of|for)\s+(another|other) students?\b",
-    rf"\b{_FIELDS}\b\s+(?:of|for)\s+(my|a) (friend|classmate|roommate)\b",
-    (
-        rf"\b{_FIELDS}\b\s+(?:did|does)\s+"
-        rf"(?:(?:another|other)\s+students?|(?:my|a)\s+(?:friend|classmate|roommate))\s+"
-        r"(?:get|got|receive|received|have|has|earn|earned)\b"
-    ),
-    r"\b\d{8}\b",  # looks like an 8-digit student id
-]
+_POLICY_SUFFIX = r"(?!\s+(?:requirements?|cutoffs?|thresholds?)\b)"
+_MODIFIER = r"(?:(?!(?:with|minimum|min|passing)\b)\w+\s+)?"
 
-_RULE_PATTERNS: list[str] = [
-    r"\b(?:does|do|can|would|will)\s+" + _TARGET + r"\s+needs?\b",
-    r"\b" + _TARGET + r"\s+needs?\b",
-    r"\bwhat\b.*\b(?:gpa|score|grade|result)\b.*\b(?:needed|required|needs?|requires?)\b",
-    r"\b(?:requirements?|minimum|min|cutoff|threshold|eligibility|prerequisites?|criteria|criterion)\b",
-    r"\b(?:needed|required)\s+(?:for|to)\b",
-    r"\bwith\s+(?:a\s+)?(?:gpa|score|grade|result)\s*(?:of\s*)?\d",
-    r"\b(?:gpa|score|grade)\s*(?:of\s*|[>=<]+\s*)?\d(?:\.\d+)?\b",
-    (
-        r"\b(?:can|could|is|are)\s+"
-        + _TARGET
-        + r"\s+(?:register|graduate|transfer|apply|take|retake|enroll|eligible|allowed)\b"
-    ),
+PRIVATE_PATTERNS: list[str] = [
+    # 1. Possessive third-party requests: "another student's GPA", "my friend's email", "other students' grades"
+    rf"\b{_TARGET}(?:'s|s'|'|s)?\s+{_MODIFIER}{_FIELDS}{_POLICY_SUFFIX}\b",
+    # 2. Field OF target: "GPA of another student", "address of my roommate", "email of another student"
+    rf"\b{_FIELDS}{_POLICY_SUFFIX}\b\s+of\s+{_TARGET}\b",
+    # 3. Contact field FOR target: "phone number for other student", "contact for another student"
+    rf"\b{_CONTACT_FIELDS}\b\s+for\s+{_TARGET}\b",
+    # 4. Attainment verbs: "what grade did my friend get", "what GPA does another student have"
+    (rf"\b{_FIELDS}\b\s+(?:did|does)\s+" rf"{_TARGET}\s+" r"(?:get|got|receive|received|have|has|earn|earned)\b"),
+    # 5. 8-digit student ID
+    r"\b\d{8}\b",
 ]
 
 PRIVATE_REPLY: str = (
@@ -49,8 +38,4 @@ def is_private_request(text: str) -> bool:
     if not text:
         return False
     t = text.lower()
-    if re.search(r"\b\d{8}\b", t) is not None:
-        return True
-    if any(re.search(p, t) is not None for p in _RULE_PATTERNS):
-        return False
     return any(re.search(p, t) is not None for p in PRIVATE_PATTERNS)
