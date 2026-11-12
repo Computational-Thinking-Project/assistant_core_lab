@@ -31,6 +31,11 @@ from assistant_core.guard import PRIVATE_PATTERNS, PRIVATE_REPLY, is_private_req
         "other student's score",
         "other students' grades",
         "another student's phone",
+        "show my classmate's student ID",
+        "what is another student's student number",
+        "show another student's ID",
+        "student ID of another student",
+        "student number of my classmate",
     ],
 )
 def test_private_guard_positive_cases(query: str):
