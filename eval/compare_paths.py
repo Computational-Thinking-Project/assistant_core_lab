@@ -14,7 +14,6 @@ from __future__ import annotations
 import inspect
 import json
 import math
-import os
 import re
 import statistics
 import subprocess
@@ -23,14 +22,13 @@ import time
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 from assistant_core.config import load_settings
 from assistant_core.knowledge import Handbook, OfficeDirectory
 from assistant_core.models import Intent, Message, Response, Source
 from assistant_core.responder import TemplateResponder
 from assistant_core.service import AssistantService
-
 
 # ---------------------------------------------------------------------------
 # Fallback / Reference RAG components for independent evaluation
@@ -146,6 +144,26 @@ class FallbackRagAnswerer:
 class StubLLM:
     name = "stub"
 
+    def complete(self, prompt: str) -> str:
+        """Production LLM interface: return structured JSON draft string."""
+        match = re.search(r"\[([A-Za-z0-9_#.]+)\]\s*([^:\n]+):\s*([^\n]+)", prompt)
+        if match:
+            source_id = match.group(1).strip()
+            title = match.group(2).strip()
+            text = match.group(3).strip()
+            return json.dumps({
+                "answer": f"According to {title}: {text}",
+                "source_ids": [source_id],
+                "confidence": 0.9,
+                "abstain": False,
+            })
+        return json.dumps({
+            "answer": ESCALATE_MSG,
+            "source_ids": [],
+            "confidence": 0.0,
+            "abstain": True,
+        })
+
     def generate_answer(self, question: str, hits: list[Hit], prompt_version: str = "answer_v1"):
         class Draft:
             abstain = False
@@ -217,7 +235,7 @@ def load_kb_chunks() -> list[Chunk]:
                 stderr=subprocess.DEVNULL,
             )
             chunks.extend(_parse_markdown_chunks(raw, default_doc_id=doc_id))
-        except Exception:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             pass
     return chunks
 
@@ -331,7 +349,7 @@ def main() -> int:
         from assistant_core.llm import make_llm
         provider = getattr(s, "llm_provider", "stub")
         llm = make_llm(provider=provider, model=getattr(s, "llm_model", "stub"))
-    except Exception:
+    except (ImportError, AttributeError, RuntimeError, KeyError):
         llm = StubLLM()
 
     min_score = float(getattr(s, "retrieval_min_score", 2.0))
