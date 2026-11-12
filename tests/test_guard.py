@@ -26,6 +26,11 @@ from assistant_core.guard import PRIVATE_PATTERNS, PRIVATE_REPLY, is_private_req
         "my friend's email",
         "email of another student",
         "contact of another student",
+        "show another student's GPA",
+        "what is another student's email",
+        "other student's score",
+        "other students' grades",
+        "another student's phone",
     ],
 )
 def test_private_guard_positive_cases(query: str):
@@ -37,6 +42,8 @@ def test_private_guard_positive_cases(query: str):
     "query",
     [
         "what is my GPA requirement for the thesis",
+        "what is the GPA requirement for the thesis",
+        "minimum GPA to register thesis",
         "can I register my thesis with 118 credits",
         "where is the library",
         "how much does a retake cost",
