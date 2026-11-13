@@ -54,6 +54,8 @@ def parse_draft(raw: str, allowed_ids: set[str]) -> AnswerDraft:
         draft = AnswerDraft.model_validate(data)
     except (TypeError, ValueError, ValidationError) as exc:
         raise ProviderError("invalid structured output") from exc
+    if not draft.abstain and not draft.answer.strip():
+        raise ProviderError("answer is empty")
     if not draft.abstain and (not draft.source_ids or not set(draft.source_ids) <= allowed_ids):
         raise ProviderError("answer cites sources that were not retrieved")
     return draft
@@ -87,9 +89,7 @@ class StubLLM:
         )
 
 
-def make_llm(
-    provider: str, model: str, base_url: str | None, api_key: str | None, timeout_s: float
-) -> LLM:
+def make_llm(provider: str, model: str, base_url: str | None, api_key: str | None, timeout_s: float) -> LLM:
     """Construct the offline provider; the remaining arguments preserve the team contract."""
     if provider == "stub":
         return StubLLM()

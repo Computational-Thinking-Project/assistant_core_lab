@@ -54,6 +54,8 @@ def test_parse_draft_accepts_grounded_answer_and_abstention() -> None:
         raw_draft(confidence=True),
         raw_draft(abstain="false"),
         raw_draft(answer=5),
+        raw_draft(answer=""),
+        raw_draft(answer=" \t "),
         raw_draft(unexpected="extra"),
         json.dumps({"answer": "missing fields"}),
         "not JSON",
@@ -108,15 +110,16 @@ class FakeIndex:
         return [self.hit]
 
 
-class WrongCitationLLM:
-    name = "wrong-citation"
+class InvalidDraftLLM:
+    name = "invalid-draft"
 
-    def __init__(self) -> None:
+    def __init__(self, output: str) -> None:
+        self.output = output
         self.calls = 0
 
     def complete(self, prompt: str) -> str:
         self.calls += 1
-        return raw_draft(source_ids=["H26#9.9"])
+        return self.output
 
 
 def test_answerer_uses_production_parser_and_grounded_stub(hit: Hit) -> None:
@@ -130,10 +133,11 @@ def test_answerer_uses_production_parser_and_grounded_stub(hit: Hit) -> None:
     assert [source.id for source in result.sources] == ["S26#3"]
 
 
-def test_invalid_citation_retries_then_degrades_to_retrieval(hit: Hit) -> None:
-    wrong_llm = WrongCitationLLM()
-    result = RagAnswerer(FakeIndex(hit), wrong_llm, retries=1).answer("I lost my student card")
-    assert wrong_llm.calls == 2
+@pytest.mark.parametrize("output", [raw_draft(source_ids=["H26#9.9"]), raw_draft(answer=" \t ")])
+def test_invalid_draft_retries_then_degrades_to_retrieval(hit: Hit, output: str) -> None:
+    invalid_llm = InvalidDraftLLM(output)
+    result = RagAnswerer(FakeIndex(hit), invalid_llm, retries=1).answer("I lost my student card")
+    assert invalid_llm.calls == 2
     assert result.path == "retrieval"
     assert result.degraded is True
     assert [source.id for source in result.sources] == ["S26#3"]
