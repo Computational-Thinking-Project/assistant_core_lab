@@ -155,3 +155,34 @@ def test_service_backward_compatibility_positional_args():
     assert svc.rag is None
     resp = svc.handle(Message(text="hi"))
     assert resp.intent == Intent.GREETING
+
+
+def test_build_service_with_real_kb_and_stub_llm():
+    """Verify build_service constructs a fully working RagAnswerer with StubLLM and data/kb."""
+    from assistant_core.config import Settings
+
+    settings = Settings(
+        kb_dir=Path("data/kb"),
+        retrieval_kind="bm25",
+        retrieval_min_score=2.0,
+        llm_provider="stub",
+    )
+    svc = build_service(settings)
+    assert svc.rag is not None
+    assert svc.rag.llm is not None
+
+    # Legitimate thesis question -> answered via LLM path with citation
+    resp = svc.handle(Message(text="can I register my thesis with 118 credits"))
+    assert resp.path == "llm"
+    assert len(resp.sources) > 0
+    assert any("H26#5.3" in s.id for s in resp.sources)
+
+    # Out of scope question -> safely abstains
+    resp_out = svc.handle(Message(text="what is the capital of France"))
+    assert resp_out.path == "abstain" or resp_out.intent == Intent.UNKNOWN
+
+    # Fee calculation -> deterministic code bypasses RAG/LLM completely
+    resp_fee = svc.handle(Message(text="tuition for 18 credits and 2 retake"))
+    assert resp_fee.path == "deterministic"
+    assert "9,450,000" in resp_fee.answer
+

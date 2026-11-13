@@ -325,21 +325,9 @@ class AssistantService:
         return Response(answer="Sorry I dont know", intent=Intent.UNKNOWN)
 
     def _resolve_private_guard(self) -> tuple[Callable[[str], bool], str]:
-        try:
-            from assistant_core.guard import PRIVATE_REPLY, is_private_request
+        from assistant_core.guard import PRIVATE_REPLY, is_private_request
 
-            return is_private_request, PRIVATE_REPLY
-        except (ImportError, AttributeError):
-            import re
-
-            patterns = [
-                r"\b(my|a) (friend|classmate|roommate)'?s?\b.*\b(grade|score|gpa|result|phone|address)",
-                r"\b(grade|score|gpa|result|phone|address)s?\b.*\b(of|for) (another|other) student",
-                r"\b(grade|score|gpa|result|phone|address)s?\b.*\b(my|a) (friend|classmate|roommate)",
-                r"\b\d{8}\b",
-            ]
-            reply = "I can't share information about other students. You can only see your own records after logging in."
-            return (lambda t: any(re.search(p, t.lower()) for p in patterns)), reply
+        return is_private_request, PRIVATE_REPLY
 
     def _handle_rule(self, text: str) -> Response:
         # Check privacy guard first before retrieval or LLM
@@ -462,42 +450,35 @@ def build_service(settings: Any | None = None) -> AssistantService:
     if kb_dir_attr is not None:
         kb_path = Path(kb_dir_attr)
         if kb_path.exists() and kb_path.is_dir():
-            try:
-                from assistant_core.rag.answerer import RagAnswerer
-                from assistant_core.rag.chunker import load_folder
-                from assistant_core.rag.index import make_index
+            from assistant_core.llm import make_llm
+            from assistant_core.rag.answerer import RagAnswerer
+            from assistant_core.rag.chunker import load_folder
+            from assistant_core.rag.index import make_index
 
-                chunks = load_folder(kb_path)
-                if chunks:
-                    retrieval_kind = getattr(settings, "retrieval_kind", "bm25")
-                    min_score = float(getattr(settings, "retrieval_min_score", 2.0))
-                    prompt_version = getattr(settings, "prompt_version", "answer_v1")
-                    index = make_index(retrieval_kind, chunks)
+            chunks = load_folder(kb_path)
+            if chunks:
+                retrieval_kind = getattr(settings, "retrieval_kind", "bm25")
+                min_score = float(getattr(settings, "retrieval_min_score", 2.0))
+                prompt_version = getattr(settings, "prompt_version", "answer_v1")
+                index = make_index(retrieval_kind, chunks)
 
-                    llm = None
-                    llm_provider = getattr(settings, "llm_provider", "stub")
-                    if llm_provider != "none":
-                        try:
-                            from assistant_core.llm import make_llm
-
-                            llm = make_llm(
-                                provider=llm_provider,
-                                model=getattr(settings, "llm_model", "llama3.2"),
-                                base_url=getattr(settings, "llm_base_url", None),
-                                api_key=getattr(settings, "llm_api_key", None),
-                                timeout_s=float(getattr(settings, "llm_timeout_s", 5.0)),
-                            )
-                        except (ImportError, AttributeError):
-                            llm = None
-
-                    rag = RagAnswerer(
-                        index=index,
-                        llm=llm,
-                        min_score=min_score,
-                        prompt_version=prompt_version,
+                llm = None
+                llm_provider = getattr(settings, "llm_provider", "stub")
+                if llm_provider != "none":
+                    llm = make_llm(
+                        provider=llm_provider,
+                        model=getattr(settings, "llm_model", "llama3.2"),
+                        base_url=getattr(settings, "llm_base_url", None),
+                        api_key=getattr(settings, "llm_api_key", None),
+                        timeout_s=float(getattr(settings, "llm_timeout_s", 5.0)),
                     )
-            except (ImportError, AttributeError, OSError):
-                rag = None
+
+                rag = RagAnswerer(
+                    index=index,
+                    llm=llm,
+                    min_score=min_score,
+                    prompt_version=prompt_version,
+                )
 
     return AssistantService(
         settings=settings,
