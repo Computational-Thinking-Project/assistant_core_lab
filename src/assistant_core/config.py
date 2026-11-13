@@ -20,6 +20,12 @@ class Settings(BaseModel):
     llm_provider: str = "stub"
     llm_api_key: str | None = Field(default=None, repr=False)  # never printed
     llm_timeout_s: float = 5.0
+    llm_model: str = "llama3.2"
+    llm_base_url: str | None = None
+    kb_dir: Path = Path("data/kb")
+    retrieval_kind: str = "bm25"
+    retrieval_min_score: float = 2.0
+    prompt_version: str = "answer_v1"
     credit_rate_vnd: int = 450_000
     retake_multiplier: float = 1.5
     max_credits: int = 30
@@ -51,6 +57,12 @@ def load_settings(env_file: str | None = ".env") -> Settings:
             llm_provider=os.getenv("LLM_PROVIDER", "stub"),
             llm_api_key=os.getenv("LLM_API_KEY") or None,
             llm_timeout_s=float(os.getenv("LLM_TIMEOUT_S", "5")),
+            llm_model=os.getenv("LLM_MODEL", "llama3.2"),
+            llm_base_url=os.getenv("LLM_BASE_URL") or None,
+            kb_dir=Path(os.getenv("KB_DIR", "data/kb")),
+            retrieval_kind=os.getenv("RETRIEVAL_KIND", "bm25"),
+            retrieval_min_score=float(os.getenv("RETRIEVAL_MIN_SCORE", "2.0")),
+            prompt_version=os.getenv("PROMPT_VERSION", "answer_v1"),
             credit_rate_vnd=int(raw_credit_rate),
             retake_multiplier=float(raw_retake_mult),
             max_credits=int(raw_max_credits),
@@ -67,7 +79,7 @@ def load_settings(env_file: str | None = ".env") -> Settings:
     except ValueError as exc:
         raise ConfigError(f"Invalid configuration numeric value: {exc}") from exc
 
-    if s.llm_provider != "stub" and not s.llm_api_key:
+    if s.llm_provider == "openai" and not s.llm_api_key:
         raise ConfigError(f"LLM_API_KEY is required when LLM_PROVIDER={s.llm_provider!r}")
 
     return s
