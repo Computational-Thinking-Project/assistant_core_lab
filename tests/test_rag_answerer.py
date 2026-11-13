@@ -15,9 +15,15 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+import pytest
+
+from assistant_core import llm as prod_llm
 from assistant_core.errors import InvalidRequest, ProviderError
 from assistant_core.models import Intent, Response
+from assistant_core.rag import answerer as answerer_module
 from assistant_core.rag.answerer import ESCALATE_MSG, RagAnswerer
+from assistant_core.rag.chunker import Chunk
+from assistant_core.rag.index import Hit, Index
 from assistant_core.router import route
 
 
@@ -223,3 +229,81 @@ def test_router_known_failure_e13_and_e15_characterization():
     assert route("when is tuition due", offices) == Intent.FEE
     # E15 contains office name 'library', so simple keyword router classifies it as Intent.OFFICE (known failure E15)
     assert route("how long can I keep a library book", offices) == Intent.OFFICE
+
+
+def test_rag_answerer_a1_threshold_boundary():
+    """Score just below min_score abstains with 0 LLM calls; score equal to min_score calls LLM."""
+    below_hit = DummyHit(chunk=DummyChunk(id="S26#3", title="Student card", text="Room I.102."), score=1.99)
+    spy_abstain = SpyLLM()
+    res_below = RagAnswerer(FakeIndex(hits=[below_hit]), spy_abstain, min_score=2.0).answer("card")
+    assert res_below.path == "abstain"
+    assert res_below.escalate is True
+    assert spy_abstain.call_count == 0
+
+    exact_hit = DummyHit(chunk=DummyChunk(id="H26#5.3", title="Thesis", text="120 credits."), score=2.0)
+    spy_pass = SpyLLM()
+    res_exact = RagAnswerer(FakeIndex(hits=[exact_hit]), spy_pass, min_score=2.0).answer("thesis")
+    assert spy_pass.call_count == 1
+    assert res_exact.path == "llm"
+    assert [s.id for s in res_exact.sources] == ["H26#5.3"]
+
+
+def test_rag_answerer_llm_model_abstain():
+    """Valid abstain=True draft from production parse_draft returns abstain without retrying."""
+    hit = DummyHit(chunk=DummyChunk(id="H26#5.3", title="Thesis", text="120 credits."), score=4.0)
+    llm = SpyLLM(return_values=[json.dumps({"answer": "", "source_ids": [], "confidence": 0.25, "abstain": True})])
+    res = RagAnswerer(FakeIndex(hits=[hit]), llm, min_score=2.0, retries=1).answer("unrelated question")
+    assert llm.call_count == 1
+    assert res.path == "abstain"
+    assert res.escalate is True
+    assert res.intent == Intent.UNKNOWN
+    assert res.confidence == 0.25
+    assert res.answer == ESCALATE_MSG
+
+
+@pytest.mark.parametrize(
+    "bad_output",
+    [
+        "not valid json",
+        json.dumps({"answer": "Fake claim.", "source_ids": ["H26#9.9"], "confidence": 0.9, "abstain": False}),
+    ],
+)
+def test_rag_answerer_invalid_json_or_fake_citation_retries_then_degrades(bad_output: str):
+    """Invalid JSON or ungrounded citation retries once via production parse_draft then falls back degraded."""
+    hit = DummyHit(chunk=DummyChunk(id="H26#5.3", title="Thesis", text="Min 120 credits."), score=4.0)
+    llm = SpyLLM(return_values=[bad_output, bad_output])
+    res = RagAnswerer(FakeIndex(hits=[hit]), llm, min_score=2.0, retries=1).answer("thesis credits")
+    assert llm.call_count == 2
+    assert res.path == "retrieval"
+    assert res.degraded is True
+    assert [s.id for s in res.sources] == ["H26#5.3"]
+
+
+def test_rag_answerer_uses_production_imports_and_distinguishes_none_vs_stub():
+    """Confirm no fallback parser/index shims remain and llm=None vs StubLLM return distinct paths."""
+    assert answerer_module.parse_draft is prod_llm.parse_draft
+    assert answerer_module.build_prompt is prod_llm.build_prompt
+    assert answerer_module.Index is Index
+
+    prod_hit = Hit(
+        chunk=Chunk(
+            id="S26#3",
+            doc_id="S26",
+            title="Student card replacement",
+            text="Replace a lost card in room I.102.",
+            version="2026.1",
+            owner="Student Affairs",
+        ),
+        score=4.5,
+    )
+    index = FakeIndex(hits=[prod_hit])
+
+    retrieval_res = RagAnswerer(index, llm=None, min_score=2.0).answer("I lost my student card")
+    assert retrieval_res.path == "retrieval"
+    assert retrieval_res.confidence is None
+    assert [s.id for s in retrieval_res.sources] == ["S26#3"]
+
+    llm_res = RagAnswerer(index, llm=prod_llm.StubLLM(), min_score=2.0).answer("I lost my student card")
+    assert llm_res.path == "llm"
+    assert llm_res.degraded is False
+    assert [s.id for s in llm_res.sources] == ["S26#3"]
