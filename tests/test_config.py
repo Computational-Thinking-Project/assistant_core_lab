@@ -22,6 +22,12 @@ def test_default_settings() -> None:
     assert s.data_dir == Path("data")
     assert s.llm_provider == "stub"
     assert s.llm_api_key is None
+    assert s.llm_model == "llama3.2"
+    assert s.llm_base_url is None
+    assert s.kb_dir == Path("data/kb")
+    assert s.retrieval_kind == "bm25"
+    assert s.retrieval_min_score == 2.0
+    assert s.prompt_version == "answer_v1"
     assert s.credit_rate_vnd == 450_000
     assert s.retake_multiplier == 1.5
     assert s.max_credits == 30
@@ -118,6 +124,34 @@ def test_load_settings_accepts_api_key_for_external_provider(
     s = load_settings(env_file=None)
     assert s.llm_provider == "openai"
     assert s.llm_api_key == "sk-valid-key"
+
+
+@pytest.mark.parametrize("provider", ["stub", "ollama", "template"])
+def test_load_settings_only_openai_requires_api_key(monkeypatch: pytest.MonkeyPatch, provider: str) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", provider)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    assert load_settings(env_file=None).llm_api_key is None
+
+
+def test_load_settings_reads_lab06_values(monkeypatch: pytest.MonkeyPatch) -> None:
+    values = {
+        "LLM_PROVIDER": "stub",
+        "LLM_MODEL": "offline-model",
+        "LLM_BASE_URL": "http://localhost:11434",
+        "KB_DIR": "fixtures/kb",
+        "RETRIEVAL_KIND": "bm25",
+        "RETRIEVAL_MIN_SCORE": "3.5",
+        "PROMPT_VERSION": "answer_v1",
+    }
+    for key, value in values.items():
+        monkeypatch.setenv(key, value)
+    settings = load_settings(env_file=None)
+    assert settings.llm_model == "offline-model"
+    assert settings.llm_base_url == "http://localhost:11434"
+    assert settings.kb_dir == Path("fixtures/kb")
+    assert settings.retrieval_kind == "bm25"
+    assert settings.retrieval_min_score == 3.5
+    assert settings.prompt_version == "answer_v1"
 
 
 def test_load_settings_invalid_numeric_env_raises_config_error(
