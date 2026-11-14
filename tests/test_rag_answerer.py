@@ -66,12 +66,14 @@ class SpyLLM:
             raise ProviderError("simulated provider failure")
         if self.return_values:
             return self.return_values.pop(0)
-        return json.dumps({
-            "answer": "Students need at least 120 credits and GPA >= 2.0 to register the thesis.",
-            "source_ids": ["H26#5.3"],
-            "confidence": 0.85,
-            "abstain": False,
-        })
+        return json.dumps(
+            {
+                "answer": "Students need at least 120 credits and GPA >= 2.0 to register the thesis.",
+                "source_ids": ["H26#5.3"],
+                "confidence": 0.85,
+                "abstain": False,
+            }
+        )
 
 
 class FakeToolRunner:
