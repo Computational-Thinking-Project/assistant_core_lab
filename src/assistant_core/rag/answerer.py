@@ -11,65 +11,13 @@ Order of defences:
 
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Protocol
 
 from assistant_core.errors import InvalidRequest, ProviderError
+from assistant_core.llm import LLM, AnswerDraft, build_prompt, parse_draft
 from assistant_core.models import Intent, Response, Source
-
-try:
-    from assistant_core.rag.index import Hit, Index
-except ImportError:
-    @dataclass(frozen=True)
-    class Hit:  # type: ignore[no-redef]
-        chunk: object
-        score: float
-
-    class Index(Protocol):  # type: ignore[no-redef]
-        def search(self, query: str, k: int = 3) -> list[Hit]: ...
-
-try:
-    from assistant_core.llm import LLM, AnswerDraft, build_prompt, parse_draft
-except ImportError:
-    class LLM(Protocol):  # type: ignore[no-redef]
-        name: str
-
-        def complete(self, prompt: str) -> str: ...
-
-    @dataclass(frozen=True)
-    class AnswerDraft:  # type: ignore[no-redef]
-        answer: str
-        source_ids: list[str]
-        confidence: float
-        abstain: bool
-
-    def build_prompt(question: str, hits: list[Hit], version: str = "answer_v1") -> str:
-        sources = "\n".join(
-            f"[{getattr(h.chunk, 'id', '')}] {getattr(h.chunk, 'title', '')}: {getattr(h.chunk, 'text', '')}"
-            for h in hits
-        )
-        return f"SOURCES:\n{sources}\nQUESTION: {question}"
-
-    def parse_draft(raw: str, allowed_ids: set[str]) -> AnswerDraft:
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise ProviderError(f"invalid JSON from LLM: {exc}") from exc
-        if not isinstance(data, dict):
-            raise ProviderError("LLM output must be a JSON object")
-        abstain = bool(data.get("abstain", False))
-        source_ids = list(data.get("source_ids", []))
-        if not abstain and (not source_ids or not set(source_ids) <= allowed_ids):
-            raise ProviderError(f"ungrounded citation: {source_ids} not in {allowed_ids}")
-        return AnswerDraft(
-            answer=str(data.get("answer", "")),
-            source_ids=source_ids,
-            confidence=float(data.get("confidence", 0.0)),
-            abstain=abstain,
-        )
+from assistant_core.rag.index import Index
 
 log = logging.getLogger("assistant_core.rag")
 ESCALATE_MSG = (
