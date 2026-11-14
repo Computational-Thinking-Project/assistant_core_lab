@@ -1,10 +1,13 @@
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session, select
 
-from assistant_api.db import Repository, init_db, make_engine
+from assistant_api.db import ChatSession, Interaction, Repository, init_db, make_engine
 from assistant_api.main import create_app
+from assistant_api.schemas import ChatResponse
 from assistant_api.weather import WeatherClient
+from assistant_core.models import Intent, Response, Source
 
 OK_JSON = {"current": {"time": "2026-10-05T09:00", "temperature_2m": 31.2, "weather_code": 3, "wind_speed_10m": 8.5}}
 
@@ -121,3 +124,124 @@ def test_weather_stale_cache_when_upstream_fails():
     w.cache_ttl_s = 0  # force a refresh on the second call
     assert not w.current().stale
     assert w.current().stale
+
+
+class _EmptyOffices:
+    def all(self) -> list:
+        return []
+
+
+class _FakeChatService:
+    def __init__(self, response: Response) -> None:
+        self.offices = _EmptyOffices()
+        self._response = response
+
+    def handle(self, msg: object) -> Response:
+        return self._response
+
+
+def _fake_chat_client(settings, repo: Repository, response: Response) -> TestClient:
+    cfg = settings.model_copy(update={"api_admin_key": "secret-admin", "rate_limit_per_min": 5})
+    app = create_app(
+        cfg,
+        _FakeChatService(response),
+        weather_with(lambda req: httpx.Response(200, json=OK_JSON)),
+        repo=repo,
+    )
+    return TestClient(app)
+
+
+def test_chat_response_defaults_for_legacy_and_fee(client: TestClient) -> None:
+    legacy_payload = {"answer": "Hello!", "intent": Intent.GREETING, "sources": [], "degraded": False}
+    schema_obj = ChatResponse(**legacy_payload, request_id="abc123def456")
+    assert schema_obj.escalate is False
+    assert schema_obj.path == "deterministic"
+    assert schema_obj.confidence is None
+
+    r = client.post("/v1/chat", json={"message": "tuition for 18 credits and 2 retake"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["intent"] == "fee" and "9,450,000" in body["answer"] and body["request_id"]
+    assert body["path"] == "deterministic"
+    assert body["escalate"] is False
+    assert body["confidence"] is None
+
+
+def test_chat_abstain_response_and_db_metadata(settings, repo: Repository) -> None:
+    abstain_resp = Response(
+        answer="Please contact the Training Office (room I.101) or ask your academic advisor.",
+        intent=Intent.UNKNOWN,
+        sources=[],
+        degraded=False,
+        escalate=True,
+        path="abstain",
+        confidence=0.0,
+    )
+    client = _fake_chat_client(settings, repo, abstain_resp)
+    r = client.post("/v1/chat", json={"message": "what is the capital of France", "session_id": "raw-student-99"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["intent"] == "unknown"
+    assert body["path"] == "abstain"
+    assert body["escalate"] is True
+    assert body["confidence"] == 0.0
+    assert len(body["request_id"]) == 12
+
+    with Session(repo.engine) as db:
+        sessions = db.exec(select(ChatSession)).all()
+        interactions = db.exec(select(Interaction)).all()
+    assert len(sessions) == 1 and "raw-student-99" not in sessions[0].id
+    assert len(interactions) == 1
+    assert interactions[0].request_id == body["request_id"]
+    assert interactions[0].resolved is False
+    assert interactions[0].degraded is False
+
+
+def test_chat_grounded_llm_response_and_feedback_roundtrip(settings, repo: Repository) -> None:
+    llm_resp = Response(
+        answer="You need at least 120 credits and GPA 2.0 to register a thesis.",
+        intent=Intent.RULE,
+        sources=[Source(id="H26#5.3", title="5.3 Thesis registration")],
+        degraded=False,
+        escalate=False,
+        path="llm",
+        confidence=0.85,
+    )
+    client = _fake_chat_client(settings, repo, llm_resp)
+    r = client.post("/v1/chat", json={"message": "can I register my thesis with 118 credits"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["path"] == "llm"
+    assert body["escalate"] is False
+    assert body["confidence"] == 0.85
+    assert body["sources"] == [{"id": "H26#5.3", "title": "5.3 Thesis registration"}]
+
+    fb = client.post("/v1/feedback", json={"request_id": body["request_id"], "rating": 1})
+    assert fb.status_code == 201 and fb.json()["request_id"] == body["request_id"]
+
+
+def test_chat_degraded_retrieval_fallback_and_stats(settings, repo: Repository) -> None:
+    degraded_resp = Response(
+        answer="3 Student card replacement: A lost student card can be replaced at Student Affairs (room I.102).",
+        intent=Intent.RULE,
+        sources=[Source(id="S26#3", title="3 Student card replacement")],
+        degraded=True,
+        escalate=False,
+        path="retrieval",
+        confidence=None,
+    )
+    client = _fake_chat_client(settings, repo, degraded_resp)
+    r = client.post("/v1/chat", json={"message": "I lost my student card"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["degraded"] is True
+    assert body["path"] == "retrieval"
+    assert body["escalate"] is False
+    assert body["confidence"] is None
+    assert body["sources"] == [{"id": "S26#3", "title": "3 Student card replacement"}]
+
+    stats = client.get("/v1/stats/intents", headers={"X-API-Key": "secret-admin"})
+    assert stats.status_code == 200
+    rows = stats.json()
+    assert len(rows) == 1
+    assert rows[0]["intent"] == "rule" and rows[0]["requests"] == 1 and rows[0]["unresolved"] == 0

@@ -25,7 +25,7 @@ history, not outstanding integration work.
 | Method | Path | Request body / params | Success (code + body) | Errors (code + error.code) | Who calls it |
 |---|---|---|---|---|---|
 | GET | `/health` | No body | 200 `{status: "ok", version: string}` | No endpoint-specific error | Operations, UI, smoke checks |
-| POST | `/v1/chat` | JSON: required `message` string, 1–2000 characters; optional `session_id` string, at most 64 characters, default `"anonymous"` | 200 `{answer: string, intent: string, sources: [{id, title}], degraded: boolean, request_id: string}`; generated request ID is 12 hexadecimal characters | 422 `invalid_request`; bonus: 429 `too_many_requests` | UI, API clients, tests |
+| POST | `/v1/chat` | JSON: required `message` string, 1–2000 characters; optional `session_id` string, at most 64 characters, default `"anonymous"` | 200 `{answer: string, intent: string, sources: [{id, title}], degraded: boolean, escalate: boolean, path: string, confidence: number \| null, request_id: string}`; generated request ID is 12 hexadecimal characters | 422 `invalid_request`; bonus: 429 `too_many_requests` | UI, API clients, tests |
 | POST | `/v1/feedback` | JSON: required `request_id` string, 1–64 characters; required `rating` integer in `{-1, 0, 1}`; optional nullable `comment` string, at most 500 characters | 201: submitted fields plus increasing integer `id` and UTC ISO-8601 `created_at` | 422 `invalid_request` | UI, API clients |
 | GET | `/v1/feedback` | Required `X-API-Key` header matching the server's `API_ADMIN_KEY` | 200: array of feedback objects, including `[]` when empty | 401 `missing_or_invalid_api_key` | Staff dashboard, QA |
 | GET | `/v1/weather` | No body; campus coordinates configured on the server | 200 `{temperature_c: number, wind_kmh: number, description: string, observed_at: string, stale: boolean}` | 503 `weather_service_unavailable` after retries fail and no cached value exists | UI, API clients |
@@ -111,3 +111,19 @@ are retained in the QA report as history and are resolved in the integrated
 revision tested here. The TV7 curl entry point is now `api-tests/curl_tests.sh`
 at the repository root. No application logic or existing Python tests were
 changed as part of this worksheet.
+
+## Lab 6 additive schema extension (`POST /v1/chat`)
+
+`ChatResponse` (`src/assistant_api/schemas.py`) adds three backward-compatible
+fields with defaults matching `assistant_core.models.Response`:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `escalate` | `boolean` | `false` | `true` when the assistant abstains and escalates to Training Office / academic advisor |
+| `path` | `string` | `"deterministic"` | Execution path taken: `"deterministic" \| "retrieval" \| "llm" \| "tool" \| "abstain"` |
+| `confidence` | `number \| null` | `null` | Model-reported confidence in `[0, 1]` when an LLM draft was evaluated |
+
+### Compatibility & Persistence Guarantees
+
+- Legacy `Response(answer, intent, sources, degraded)` instances and `fee`/`office`/`greeting` flows unpack cleanly via `ChatResponse(**resp.model_dump(), request_id=request_id)` with the defaults above.
+- All v1 endpoints (`/health`, `/v1/offices`, `/v1/chat`, `POST/GET /v1/feedback`, `/v1/stats/intents`, `/v1/weather`), `request_id` generation, admin key `401`, validation `422`, rate limit `429`, weather `503`, and Lab 5 SQLite metadata persistence (no raw message or PII stored) remain unchanged.
