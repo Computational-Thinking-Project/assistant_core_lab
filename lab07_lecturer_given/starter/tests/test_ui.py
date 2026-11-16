@@ -61,11 +61,11 @@ def test_feedback_negative():
     assert client_with(handler).send_feedback("abc123", -1) is True
 
 
-def test_f1_dislike_button_in_ui():
+def test_f1_dislike_button_in_ui(monkeypatch):
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file("ui/app.py")
-    at.run()
+    monkeypatch.setattr(AssistantClient, "send_feedback", lambda self, rid, rating, comment=None: True)
+    at = AppTest.from_file("ui/app.py").run()
     # Inject an assistant message with request_id to trigger thumbs-up & thumbs-down rendering
     at.session_state.messages.append({"role": "assistant", "content": "Sample answer", "request_id": "req-f1-test"})
     at.run()
@@ -74,16 +74,31 @@ def test_f1_dislike_button_in_ui():
     down_btn = [b for b in at.button if b.label == "👎"][0]
     assert down_btn.key == "down1"
 
-    # Click the 👎 button
+    # Click the 👎 button once - both buttons must disappear immediately on this single run
     down_btn.click().run()
 
-    # Verify request_id is recorded in rated session_state
+    # Verify request_id is recorded in rated session_state and controls are gone without an extra run
     assert "req-f1-test" in at.session_state.rated
-
-    # Verify on rerun that both buttons disappear
-    at.run()
     assert not any(b.label == "👎" for b in at.button)
     assert not any(b.label == "👍" for b in at.button)
+
+
+def test_f1_dislike_button_failed_feedback_allows_retry(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setattr(AssistantClient, "send_feedback", lambda self, rid, rating, comment=None: False)
+    at = AppTest.from_file("ui/app.py").run()
+    at.session_state.messages.append({"role": "assistant", "content": "Sample answer", "request_id": "req-fail-test"})
+    at.run()
+
+    down_btn = [b for b in at.button if b.label == "👎"][0]
+    # Click 👎 when backend fails
+    down_btn.click().run()
+
+    # When feedback submission fails, request must NOT be marked as rated and buttons remain for retry
+    assert "req-fail-test" not in at.session_state.rated
+    assert len([b for b in at.button if b.label == "👎"]) == 1
+    assert len([b for b in at.button if b.label == "👍"]) == 1
 
 
 def test_validate_input():

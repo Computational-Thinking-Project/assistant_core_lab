@@ -82,13 +82,14 @@ Author: Hà Trần Bội Anh (@htbaax) - Member 5 (TV5)
 1. **Streamlit Negative Feedback Button (`starter/ui/app.py`):**
    - Added the 👎 button in column `c2` beside the 👍 button in column `c1` within the message history loop.
    - Assigned dynamic key `key=f"down{i}"` using message index `i` to prevent Streamlit `DuplicateWidgetID` errors across multiple chat turns.
-   - Invoked `client.send_feedback(rid, -1)` passing `rating = -1` and the interaction `request_id`.
-   - Stored `rid` in `st.session_state.rated` so both thumbs-up and thumbs-down buttons cleanly disappear after a single vote, preventing duplicate submissions.
+   - Wrapped button group in a placeholder container (`st.empty()`) and invoked `placeholder.empty()` on success so controls disappear immediately on a single click interaction without requiring extra runs (resolving F01).
+   - Only marks `rid` in `st.session_state.rated` and shows thank-you toast after a successful `client.send_feedback` response (`True`); on failure, displays an error notification and preserves buttons for retry (resolving F02).
    - Triggered an acknowledgment toast: `"Thanks — we will look at this answer."` adhering to Google PAIR respectful feedback guidelines.
 
 2. **Automated Unit & UI Verification (`starter/tests/test_ui.py`):**
    - Added `test_feedback_negative` to verify `AssistantClient.send_feedback(request_id, -1)` properly posts payload `{"request_id": ..., "rating": -1}` to `/v1/feedback`.
-   - Added `test_f1_dislike_button_in_ui` leveraging Streamlit's `AppTest` to simulate the dislike button click, confirm insertion into `st.session_state.rated`, and verify button disappearance on rerun.
+   - Added `test_f1_dislike_button_in_ui` leveraging Streamlit's `AppTest` to simulate the dislike button click, confirm insertion into `st.session_state.rated`, and verify immediate button disappearance after a single `click().run()`.
+   - Added `test_f1_dislike_button_failed_feedback_allows_retry` verifying that failed responses leave buttons visible for retry and do not mark the request as rated.
    - Verified that `ruff check` and `git diff --check` pass with 0 errors.
 
 ## Lab06 TV5 - Knowledge Base Integration & Privacy Guard

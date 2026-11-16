@@ -46,16 +46,24 @@ for i, m in enumerate(st.session_state.messages):
         if m.get("note"):
             st.info(m["note"])
         rid = m.get("request_id")
+        placeholder = st.empty()
         if rid and rid not in st.session_state.rated:
-            c1, c2, _ = st.columns([1, 1, 6])
-            if c1.button("👍", key=f"up{i}"):
-                client.send_feedback(rid, 1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks for your feedback!")
-            if c2.button("👎", key=f"down{i}"):
-                client.send_feedback(rid, -1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks — we will look at this answer.")
+            with placeholder.container():
+                c1, c2, _ = st.columns([1, 1, 6])
+                if c1.button("👍", key=f"up{i}"):
+                    if client.send_feedback(rid, 1):
+                        st.session_state.rated.add(rid)
+                        st.toast("Thanks for your feedback!")
+                        placeholder.empty()
+                    else:
+                        st.toast("Could not submit feedback. Please try again.")
+                if c2.button("👎", key=f"down{i}"):
+                    if client.send_feedback(rid, -1):
+                        st.session_state.rated.add(rid)
+                        st.toast("Thanks — we will look at this answer.")
+                        placeholder.empty()
+                    else:
+                        st.toast("Could not submit feedback. Please try again.")
 
 # ---- new question ----------------------------------------------------------------
 question = st.chat_input("Ask about fees, offices or the handbook…") or st.session_state.pop("pending", None)
