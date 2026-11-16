@@ -1,19 +1,20 @@
 """Tests for ui/logic.py and ui/api_client.py — Bonus D.5 scope (Duy).
 
 Covers:
-  - AssistantClient: ask(), healthy(), send_feedback() — via httpx mock
+  - AssistantClient: ask(), healthy(), send_feedback() — via httpx.MockTransport
   - validate_input()
   - stream_generator()         ← Bonus D.5
   - format_source_badges()     ← Bonus D.5
 
 L1 (format_sources) and L2 (status_note) are intentionally NOT tested here;
 those belong to Trung Anh's PR.
+
+No third-party mock library required: httpx.MockTransport is part of httpx.
 """
 
 from __future__ import annotations
 
 import httpx
-import respx
 
 from ui.api_client import AssistantClient
 from ui.logic import format_source_badges, stream_generator, validate_input
@@ -25,60 +26,103 @@ from ui.logic import format_source_badges, stream_generator, validate_input
 BASE = "http://127.0.0.1:8000"
 
 
-def _make_client() -> AssistantClient:
-    return AssistantClient(base_url=BASE, timeout=5.0)
+def _mock_response(status_code: int, body: dict | str) -> httpx.Response:
+    if isinstance(body, str):
+        return httpx.Response(status_code, text=body)
+    return httpx.Response(status_code, json=body)
+
+
+def _client_with(responses: list[httpx.Response]) -> AssistantClient:
+    """Return an AssistantClient whose HTTP calls are served from *responses* in order."""
+    idx = 0
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        nonlocal idx
+        resp = responses[idx]
+        idx += 1
+        return resp
+
+    transport = httpx.MockTransport(_handler)
+    return AssistantClient(base_url=BASE, timeout=5.0, transport=transport)
 
 
 # ---------------------------------------------------------------------------
-# AssistantClient tests
+# AssistantClient.ask() — POST /v1/chat
 # ---------------------------------------------------------------------------
 
 
-@respx.mock
 def test_ask_ok() -> None:
-    respx.post(f"{BASE}/ask").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "answer": "You need 120 credits.",
-                "sources": [{"id": "H26", "title": "Thesis rules"}],
-                "request_id": "req-001",
-                "escalate": False,
-                "degraded": False,
-            },
-        )
-    )
-    result = _make_client().ask("How many credits to register thesis?")
+    payload = {
+        "answer": "You need 120 credits.",
+        "sources": [{"id": "H26", "title": "Thesis rules"}],
+        "request_id": "req001abc123",
+        "escalate": False,
+        "degraded": False,
+        "intent": "rule",
+        "path": "retrieval",
+        "confidence": 0.9,
+    }
+    client = _client_with([_mock_response(200, payload)])
+    result = client.ask("How many credits to register thesis?", session_id="sess1")
     assert result.ok
     assert result.answer == "You need 120 credits."
     assert result.sources == [{"id": "H26", "title": "Thesis rules"}]
-    assert result.request_id == "req-001"
+    assert result.request_id == "req001abc123"
     assert not result.escalate
     assert not result.degraded
 
 
-@respx.mock
 def test_ask_backend_down() -> None:
-    respx.post(f"{BASE}/ask").mock(side_effect=httpx.ConnectError("refused"))
-    result = _make_client().ask("Hello?")
+    def _raise(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("refused")
+
+    transport = httpx.MockTransport(_raise)
+    client = AssistantClient(base_url=BASE, timeout=5.0, transport=transport)
+    result = client.ask("Hello?")
     assert not result.ok
     assert "connect" in result.error.lower()
 
 
-@respx.mock
-def test_ask_validation_and_server_errors() -> None:
-    # 422 from the backend
-    respx.post(f"{BASE}/ask").mock(return_value=httpx.Response(422, text="Unprocessable"))
-    result = _make_client().ask("bad payload")
+def test_ask_timeout() -> None:
+    def _raise(request: httpx.Request) -> httpx.Response:
+        raise httpx.TimeoutException("timeout", request=request)
+
+    transport = httpx.MockTransport(_raise)
+    client = AssistantClient(base_url=BASE, timeout=5.0, transport=transport)
+    result = client.ask("Hello?")
     assert not result.ok
-    assert "422" in result.error
+    assert "timed out" in result.error.lower()
 
 
-@respx.mock
-def test_feedback() -> None:
-    respx.post(f"{BASE}/feedback").mock(return_value=httpx.Response(200))
-    ok = _make_client().send_feedback("req-001", 1)
-    assert ok
+def test_ask_422() -> None:
+    body = {"error": {"code": "invalid_request", "message": "message field required"}}
+    client = _client_with([_mock_response(422, body)])
+    result = client.ask("")
+    assert not result.ok
+    assert "invalid" in result.error.lower()
+
+
+def test_ask_429() -> None:
+    client = _client_with([_mock_response(429, {"error": {"code": "too_many_requests"}})])
+    result = client.ask("spam")
+    assert not result.ok
+    assert "too many" in result.error.lower()
+
+
+# ---------------------------------------------------------------------------
+# AssistantClient.send_feedback() — POST /v1/feedback (expects 201)
+# ---------------------------------------------------------------------------
+
+
+def test_feedback_ok() -> None:
+    body = {"id": 1, "request_id": "req001abc123", "rating": 1, "created_at": "2026-01-01T00:00:00Z"}
+    client = _client_with([_mock_response(201, body)])
+    assert client.send_feedback("req001abc123", 1) is True
+
+
+def test_feedback_fail() -> None:
+    client = _client_with([_mock_response(422, {"error": {"code": "invalid_request"}})])
+    assert client.send_feedback("bad", 99) is False
 
 
 # ---------------------------------------------------------------------------
@@ -103,11 +147,16 @@ def test_stream_generator() -> None:
     chunks = list(stream_generator(text, delay=0))
     # Reconstruct should equal original text
     assert "".join(chunks) == text
-    # Must yield more than one chunk for a multi-word string
+    # Must yield one chunk per word for a multi-word string
     assert len(chunks) == 3
     # All but the last chunk should end with a space
     for chunk in chunks[:-1]:
         assert chunk.endswith(" "), f"chunk {chunk!r} should end with space"
+
+
+def test_stream_generator_single_word() -> None:
+    chunks = list(stream_generator("hello", delay=0))
+    assert chunks == ["hello"]
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +179,6 @@ def test_format_source_badges() -> None:
     # Edge: empty list → empty list
     assert format_source_badges([]) == []
 
-    # Edge: source missing keys → still safe
+    # Edge: source missing title key → safe, title defaults to ""
     partial = format_source_badges([{"id": "X1"}])
     assert partial == [("X1", "")]
