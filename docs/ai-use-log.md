@@ -82,14 +82,15 @@ Author: Hà Trần Bội Anh (@htbaax) - Member 5 (TV5)
 1. **Streamlit Negative Feedback Button (`ui/app.py`):**
    - Added the 👎 button in column `c2` beside the 👍 button in column `c1` within the message history loop.
    - Assigned dynamic key `key=f"down{i}"` using message index `i` to prevent Streamlit `DuplicateWidgetID` errors across multiple chat turns.
-   - Wrapped button group in a placeholder container (`st.empty()`) and invoked `placeholder.empty()` on success so controls disappear immediately on a single click interaction without requiring extra runs (resolving F01).
-   - Only marks `rid` in `st.session_state.rated` and shows thank-you toast after a successful `client.send_feedback` response (`True`); on failure, displays an error notification and preserves buttons for retry (resolving F02).
-   - Triggered an acknowledgment toast: `"Thanks — we will look at this answer."` adhering to Google PAIR respectful feedback guidelines.
+   - Separated button rendering inside `placeholder.container()` from container emptying (`placeholder.empty()`): both buttons are always evaluated and attached first, then cleared cleanly outside the container when either vote succeeds. This resolves F01 for both 👍 and 👎 without Streamlit delta tree corruption or `assert isinstance(child, Block)` `AssertionError`.
+   - Guarded feedback submission by checking `client.send_feedback(...)` boolean return: only marks `rid` in `st.session_state.rated` and toasts acknowledgment on success; on failure, displays an error notification and preserves both buttons to allow immediate retries (resolving F02).
+   - Triggered acknowledgment toast: `"Thanks — we will look at this answer."` adhering to Google PAIR respectful feedback guidelines.
 
 2. **Automated Unit & UI Verification (`tests/test_ui.py`):**
    - Added `test_feedback_negative` to verify `AssistantClient.send_feedback(request_id, -1)` properly posts payload `{"request_id": ..., "rating": -1}` to `/v1/feedback`.
-   - Added `test_f1_dislike_button_in_ui` leveraging Streamlit's `AppTest` to simulate the dislike button click, confirm insertion into `st.session_state.rated`, and verify immediate button disappearance after a single `click().run()`.
-   - Added `test_f1_dislike_button_failed_feedback_allows_retry` verifying that failed responses leave buttons visible for retry and do not mark the request as rated.
+   - Added `test_f1_dislike_button_in_ui` leveraging Streamlit's `AppTest` to simulate the dislike button click, assert transmission of `(rid, -1)`, confirm insertion into `st.session_state.rated`, and verify immediate button disappearance after a single `click().run()`.
+   - Added `test_f1_like_button_in_ui` simulating the thumbs-up button click, asserting transmission of `(rid, 1)`, confirming insertion into `rated`, and verifying both buttons disappear cleanly in the same run without `AssertionError`.
+   - Added `test_f1_dislike_button_failed_feedback_allows_retry` and `test_f1_like_button_failed_feedback_allows_retry` verifying that failed responses leave both buttons visible for retry and do not mark the request as rated.
    - Verified that `ruff check ui/app.py tests/test_ui.py` and `git diff --check` pass with 0 errors.
 
 ## Lab06 TV5 - Knowledge Base Integration & Privacy Guard
