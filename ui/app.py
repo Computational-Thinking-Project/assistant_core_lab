@@ -78,15 +78,29 @@ for i, m in enumerate(st.session_state.messages):
         if m.get("note"):
             st.info(m["note"])
         rid = m.get("request_id")
+        placeholder = st.empty()
         if rid and rid not in st.session_state.rated:
-            c1, c2, _ = st.columns([1, 1, 6])
-            # 👍 button (provided in starter)
-            if c1.button("\U0001f44d", key=f"up{i}"):
-                client.send_feedback(rid, 1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks for your feedback!")
-            # 👎 F1 — assigned to Bội Anh; placeholder kept here so app runs standalone
-            # TODO F1 (assigned to Bội Anh): add c2.button("👎", key=f"down{i}") that sends rating -1
+            with placeholder.container():
+                c1, c2, _ = st.columns([1, 1, 6])
+                up_clicked = c1.button("\U0001f44d", key=f"up{i}")
+                down_clicked = c2.button("\U0001f44e", key=f"down{i}")
+            voted = False
+            if up_clicked:
+                if client.send_feedback(rid, 1):
+                    st.session_state.rated.add(rid)
+                    st.toast("Thanks for your feedback!")
+                    voted = True
+                else:
+                    st.toast("Could not submit feedback. Please try again.")
+            elif down_clicked:
+                if client.send_feedback(rid, -1):
+                    st.session_state.rated.add(rid)
+                    st.toast("Thanks \u2014 we will look at this answer.")
+                    voted = True
+                else:
+                    st.toast("Could not submit feedback. Please try again.")
+            if voted:
+                placeholder.empty()
 
 # ---- new question -----------------------------------------------------------
 question = st.chat_input("Ask about fees, offices or the handbook\u2026") or st.session_state.pop("pending", None)

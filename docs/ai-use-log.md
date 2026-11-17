@@ -73,6 +73,25 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-11-11 | Đình Hùng (@benalexx007) | Antigravity (Gemini) | Lab 06 TV4 REST API ChatResponse contract extension and Lab 4-5 regression tests | Added additive `escalate`, `path`, and `confidence` fields to `ChatResponse` in `src/assistant_api/schemas.py`, documented them in `docs/api_contract.md`, added targeted API/DB tests in `tests/test_api.py` covering legacy defaults, abstain, grounded `llm`, and degraded `retrieval` responses, and verified full API/DB/persistence regression suite. |
 | 2026-11-12 | Nhật Quỳnh (@nhatquynh1107) | Codex | Implement Lab 06 group LLM/A2 module (issue #66) | Quỳnh defined the stub-only scope. Codex implemented the offline LLM adapter, grounded JSON validation, prompt, settings and targeted tests; 60 targeted tests and Ruff check passed on code commit `13b8c35`. |
 | 2026-11-13 | Đạt (@Thanhdat3010) | Antigravity (Gemini) | Remove `except ImportError` fallbacks in `rag/answerer.py` and verify A1/A2 integration (TV3) | Removed fallback `rag.index` and `llm` import shims in `src/assistant_core/rag/answerer.py` after PR #60 and PR #67 merged, and added TV3 boundary, model-abstain, invalid-JSON/ungrounded-citation retry, and `llm=None` vs `StubLLM` tests in `tests/test_rag_answerer.py`. |
+| 2026-11-16 | Bội Anh (@htbaax) | Antigravity (Gemini) | Implement Lab 07 Negative Feedback Button & Dislike Rating Flow (F1) (issue #72) | Added dislike 👎 button in root `ui/app.py` with immediate container clearing (resolving F01) and safe retry on failure (resolving F02). Added unit & AppTest tests in root `tests/test_ui.py`. |
+
+## Lab07 TV5 - Negative Feedback Button & Dislike Rating Flow (F1) (issue #72)
+
+Author: Hà Trần Bội Anh (@htbaax) - Member 5 (TV5)
+
+1. **Streamlit Negative Feedback Button (`ui/app.py`):**
+   - Added the 👎 button in column `c2` beside the 👍 button in column `c1` within the message history loop.
+   - Assigned dynamic key `key=f"down{i}"` using message index `i` to prevent Streamlit `DuplicateWidgetID` errors across multiple chat turns.
+   - Separated button rendering inside `placeholder.container()` from container emptying (`placeholder.empty()`): both buttons are always evaluated and attached first, then cleared cleanly outside the container when either vote succeeds. This resolves F01 for both 👍 and 👎 without Streamlit delta tree corruption or `assert isinstance(child, Block)` `AssertionError`.
+   - Guarded feedback submission by checking `client.send_feedback(...)` boolean return: only marks `rid` in `st.session_state.rated` and toasts acknowledgment on success; on failure, displays an error notification and preserves both buttons to allow immediate retries (resolving F02).
+   - Triggered acknowledgment toast: `"Thanks — we will look at this answer."` adhering to Google PAIR respectful feedback guidelines.
+
+2. **Automated Unit & UI Verification (`tests/test_ui.py`):**
+   - Added `test_feedback_negative` to verify `AssistantClient.send_feedback(request_id, -1)` properly posts payload `{"request_id": ..., "rating": -1}` to `/v1/feedback`.
+   - Added `test_f1_dislike_button_in_ui` leveraging Streamlit's `AppTest` to simulate the dislike button click, assert transmission of `(rid, -1)`, confirm insertion into `st.session_state.rated`, and verify immediate button disappearance after a single `click().run()`.
+   - Added `test_f1_like_button_in_ui` simulating the thumbs-up button click, asserting transmission of `(rid, 1)`, confirming insertion into `rated`, and verifying both buttons disappear cleanly in the same run without `AssertionError`.
+   - Added `test_f1_dislike_button_failed_feedback_allows_retry` and `test_f1_like_button_failed_feedback_allows_retry` verifying that failed responses leave both buttons visible for retry and do not mark the request as rated.
+   - Verified that `ruff check ui/app.py tests/test_ui.py` and `git diff --check` pass with 0 errors.
 
 ## Lab06 TV5 - Knowledge Base Integration & Privacy Guard
 

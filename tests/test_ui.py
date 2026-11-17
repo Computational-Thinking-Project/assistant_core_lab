@@ -120,6 +120,20 @@ def test_feedback_ok() -> None:
     assert client.send_feedback("req001abc123", 1) is True
 
 
+def test_feedback_negative() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        data = json.loads(request.read())
+        assert data["rating"] == -1
+        assert data["request_id"] == "abc123"
+        return httpx.Response(201, json={"id": 1, "created_at": "2026-01-01T00:00:00Z"})
+
+    transport = httpx.MockTransport(handler)
+    client = AssistantClient(base_url=BASE, timeout=5.0, transport=transport)
+    assert client.send_feedback("abc123", -1) is True
+
+
 def test_feedback_fail() -> None:
     client = _client_with([_mock_response(422, {"error": {"code": "invalid_request"}})])
     assert client.send_feedback("bad", 99) is False
@@ -182,3 +196,104 @@ def test_format_source_badges() -> None:
     # Edge: source missing title key → safe, title defaults to ""
     partial = format_source_badges([{"id": "X1"}])
     assert partial == [("X1", "")]
+
+
+# ---------------------------------------------------------------------------
+# F1 — Feedback UI Buttons & Flow (Bội Anh)
+# ---------------------------------------------------------------------------
+
+
+def test_f1_dislike_button_in_ui(monkeypatch) -> None:
+    from streamlit.testing.v1 import AppTest
+
+    calls: list[tuple[str, int]] = []
+
+    def mock_send_feedback(self, rid: str, rating: int, comment: str | None = None) -> bool:
+        calls.append((rid, rating))
+        return True
+
+    monkeypatch.setattr(AssistantClient, "send_feedback", mock_send_feedback)
+    at = AppTest.from_file("ui/app.py").run()
+    # Inject an assistant message with request_id to trigger thumbs-up & thumbs-down rendering
+    at.session_state.messages.append({"role": "assistant", "content": "Sample answer", "request_id": "req-f1-test"})
+    at.run()
+
+    # Find the 👎 button
+    down_btn = [b for b in at.button if b.label == "👎"][0]
+    assert down_btn.key == "down1"
+
+    # Click the 👎 button once - both buttons must disappear immediately on this single run
+    down_btn.click().run()
+
+    # Assert request ID and -1 rating transmitted by 👎
+    assert calls == [("req-f1-test", -1)]
+
+    # Verify request_id is recorded in rated session_state and controls are gone without an extra run
+    assert "req-f1-test" in at.session_state.rated
+    assert not any(b.label == "👎" for b in at.button)
+    assert not any(b.label == "👍" for b in at.button)
+
+
+def test_f1_like_button_in_ui(monkeypatch) -> None:
+    from streamlit.testing.v1 import AppTest
+
+    calls: list[tuple[str, int]] = []
+
+    def mock_send_feedback(self, rid: str, rating: int, comment: str | None = None) -> bool:
+        calls.append((rid, rating))
+        return True
+
+    monkeypatch.setattr(AssistantClient, "send_feedback", mock_send_feedback)
+    at = AppTest.from_file("ui/app.py").run()
+    at.session_state.messages.append({"role": "assistant", "content": "Sample answer", "request_id": "req-like-test"})
+    at.run()
+
+    up_btn = [b for b in at.button if b.label == "👍"][0]
+    assert up_btn.key == "up1"
+
+    # Click the 👍 button once - both buttons must disappear immediately on this single run
+    up_btn.click().run()
+
+    # Assert request ID and +1 rating transmitted by 👍
+    assert calls == [("req-like-test", 1)]
+
+    # Verify request_id is recorded in rated session_state and controls are gone without an extra run
+    assert "req-like-test" in at.session_state.rated
+    assert not any(b.label == "👍" for b in at.button)
+    assert not any(b.label == "👎" for b in at.button)
+
+
+def test_f1_dislike_button_failed_feedback_allows_retry(monkeypatch) -> None:
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setattr(AssistantClient, "send_feedback", lambda self, rid, rating, comment=None: False)
+    at = AppTest.from_file("ui/app.py").run()
+    at.session_state.messages.append({"role": "assistant", "content": "Sample answer", "request_id": "req-fail-test"})
+    at.run()
+
+    down_btn = [b for b in at.button if b.label == "👎"][0]
+    # Click 👎 when backend fails
+    down_btn.click().run()
+
+    # When feedback submission fails, request must NOT be marked as rated and buttons remain for retry
+    assert "req-fail-test" not in at.session_state.rated
+    assert len([b for b in at.button if b.label == "👎"]) == 1
+    assert len([b for b in at.button if b.label == "👍"]) == 1
+
+
+def test_f1_like_button_failed_feedback_allows_retry(monkeypatch) -> None:
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setattr(AssistantClient, "send_feedback", lambda self, rid, rating, comment=None: False)
+    at = AppTest.from_file("ui/app.py").run()
+    at.session_state.messages.append({"role": "assistant", "content": "Sample answer", "request_id": "req-fail-like"})
+    at.run()
+
+    up_btn = [b for b in at.button if b.label == "👍"][0]
+    # Click 👍 when backend fails
+    up_btn.click().run()
+
+    # When feedback submission fails, request must NOT be marked as rated and buttons remain for retry
+    assert "req-fail-like" not in at.session_state.rated
+    assert len([b for b in at.button if b.label == "👍"]) == 1
+    assert len([b for b in at.button if b.label == "👎"]) == 1
