@@ -195,8 +195,11 @@ To also test rate limiting (`--bonus`), restart Uvicorn (or wait 60s for a fresh
 ## 7. Lab 7 Integration & Release Workflow (`v0.7-mvp`)
 
 - **Architecture reference:** [`docs/architecture.md`](docs/architecture.md)
-- **Lab 7 workflow:** Feature PRs from `main` cover `ui/logic.py` (L1/L2), `ui/app.py` (F1 + D.5 bonus), `tests/test_ui.py` (unit & mocked client tests), `requirements.txt` (`streamlit==1.39.0`), `worksheets/usability_checklist.md` & `worksheets/user_test_observations.md` (Part E + H1/H2), and this `README.md`.
-- After all module PRs pass review and E2E verification (7 Part D.4 scenarios across the two servers), the integrated `main` commit is tagged `v0.7-mvp`.
+- **Branching & PR rules:**
+  1. **Base and target branch:** Branch from `main` (for example `git checkout -b feat/lab07-<member>-<scope> origin/main`) and open PRs into **`main`** (unless an integration branch is announced by the Tech Lead). **Never branch from or target `lab07/sources`** — it is a reference-only branch for lecturer materials.
+  2. **Root workspace layout:** Place all active Lab 7 deliverables at the repository root (`ui/`, `tests/test_ui.py`, `worksheets/usability_checklist.md`, `worksheets/user_test_observations.md`, `requirements.txt`, `pyproject.toml` with `pythonpath = [".", "src"]`, `README.md`). **Do not** edit `lab07_lecturer_given/starter/` or merge lecturer starter folders into `main`.
+  3. **Scoped PR ownership:** Keep each PR strictly within its assigned module (`ui/logic.py` for L1/L2, `ui/app.py` for F1 or D.5 bonus, `tests/test_ui.py` for UI tests, `worksheets/` for Part E + H1/H2) without overwriting other members' tasks or importing `assistant_core` inside `ui/`.
+- **Release gate:** After all module PRs pass review, merge into `main`, and pass the two-server Part D.4 E2E checks (along with removing pending-integration notes once `ui/` is landed), tag the release commit `v0.7-mvp`.
 
 ---
 
