@@ -43,6 +43,7 @@ if "rated" not in st.session_state:
     st.session_state.rated = set()
 
 st.title("\U0001f393 FIT Study Assistant")
+st.caption("This is an AI assistant. Check important decisions with the Training Office.")
 if not client.healthy():
     st.error("The assistant backend is not reachable. Start it with: uvicorn assistant_api.main:create_app --factory")
 
@@ -68,39 +69,52 @@ def render_enhanced_sources(sources_list: list[dict], fallback_str: str = "") ->
 
 
 # ---- message history --------------------------------------------------------
-for i, m in enumerate(st.session_state.messages):
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
-        if m.get("raw_sources"):
-            render_enhanced_sources(m["raw_sources"])
-        elif m.get("sources"):
-            render_enhanced_sources([], fallback_str=m["sources"])
-        if m.get("note"):
-            st.info(m["note"])
-        rid = m.get("request_id")
-        placeholder = st.empty()
-        if rid and rid not in st.session_state.rated:
-            with placeholder.container():
-                c1, c2, _ = st.columns([1, 1, 6])
-                up_clicked = c1.button("\U0001f44d", key=f"up{i}")
-                down_clicked = c2.button("\U0001f44e", key=f"down{i}")
-            voted = False
-            if up_clicked:
-                if client.send_feedback(rid, 1):
-                    st.session_state.rated.add(rid)
-                    st.toast("Thanks for your feedback!")
-                    voted = True
-                else:
-                    st.toast("Could not submit feedback. Please try again.")
-            elif down_clicked:
-                if client.send_feedback(rid, -1):
-                    st.session_state.rated.add(rid)
-                    st.toast("Thanks \u2014 we will look at this answer.")
-                    voted = True
-                else:
-                    st.toast("Could not submit feedback. Please try again.")
-            if voted:
-                placeholder.empty()
+chat_container = st.container()
+with chat_container:
+    for i, m in enumerate(st.session_state.messages):
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+            if m.get("raw_sources"):
+                render_enhanced_sources(m["raw_sources"])
+            elif m.get("sources"):
+                render_enhanced_sources([], fallback_str=m["sources"])
+            if m.get("note"):
+                st.info(m["note"])
+            rid = m.get("request_id")
+            placeholder = st.empty()
+            if rid and rid not in st.session_state.rated:
+                with placeholder.container():
+                    c1, c2, _ = st.columns([1, 1, 6])
+                    up_clicked = c1.button("\U0001f44d", key=f"up{i}")
+                    down_clicked = c2.button("\U0001f44e", key=f"down{i}")
+                voted = False
+                if up_clicked:
+                    if client.send_feedback(rid, 1):
+                        st.session_state.rated.add(rid)
+                        st.toast("Thanks for your feedback!")
+                        voted = True
+                    else:
+                        st.toast("Could not submit feedback. Please try again.")
+                elif down_clicked:
+                    if client.send_feedback(rid, -1):
+                        st.session_state.rated.add(rid)
+                        st.toast("Thanks \u2014 we will look at this answer.")
+                        voted = True
+                    else:
+                        st.toast("Could not submit feedback. Please try again.")
+                if voted:
+                    placeholder.empty()
+
+# ---- quick-start examples on first screen (visible on phone-width too) ------
+starter_placeholder = st.empty()
+if len(st.session_state.messages) == 1:
+    with starter_placeholder.container():
+        st.caption("Try an example:")
+        for idx, ex in enumerate(EXAMPLES):
+            if st.button(ex, key=f"starter_ex_{idx}", use_container_width=True):
+                st.session_state.pending = ex
+else:
+    starter_placeholder.empty()
 
 # ---- new question -----------------------------------------------------------
 question = st.chat_input("Ask about fees, offices or the handbook\u2026") or st.session_state.pop("pending", None)
@@ -109,6 +123,7 @@ if question:
     if problem:
         st.warning(problem)
     else:
+        starter_placeholder.empty()
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)

@@ -337,3 +337,35 @@ def test_f1_like_button_failed_feedback_allows_retry(monkeypatch) -> None:
     assert "req-fail-like" not in at.session_state.rated
     assert len([b for b in at.button if b.label == "👍"]) == 1
     assert len([b for b in at.button if b.label == "👎"]) == 1
+
+
+def test_h1_first_screen_shows_ai_notice_and_examples_in_main_pane(monkeypatch) -> None:
+    from streamlit.testing.v1 import AppTest
+
+    from ui.api_client import ChatResult
+
+    asked: list[str] = []
+
+    def mock_ask(self, question: str, session_id: str = "") -> ChatResult:
+        asked.append(question)
+        return ChatResult(
+            ok=True,
+            answer="You need at least 120 accumulated credits.",
+            sources=[{"id": "H26#5.3", "title": "5.3 Thesis registration"}],
+            request_id="req-h1-test",
+        )
+
+    monkeypatch.setattr(AssistantClient, "healthy", lambda self: True)
+    monkeypatch.setattr(AssistantClient, "ask", mock_ask)
+
+    at = AppTest.from_file("ui/app.py").run()
+
+    main_captions = [c.value for c in at.main.caption]
+    assert any("AI assistant" in cap for cap in main_captions)
+
+    starter_btns = [b for b in at.main.button if (b.key or "").startswith("starter_ex_")]
+    assert len(starter_btns) == 4
+
+    starter_btns[0].click().run()
+    assert asked == ["Can I register my thesis with 118 credits?"]
+    assert not any((b.key or "").startswith("starter_ex_") for b in at.main.button)
