@@ -80,9 +80,11 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 
 Author: Tâm (@AI-WFox) - Member 7 (TV7)
 
-1. **UX Fix (`ui/app.py`, commit `478984a`):**
-   - Surfaced `"This is an AI assistant. Check important decisions with the Training Office."` directly beneath `st.title` in the main pane so AI attribution remains visible even when the sidebar is collapsed on phone-width viewports (`375x812`).
-   - Added full-width quick-start `EXAMPLES` buttons (`starter_ex_0`..`starter_ex_3`) inside `starter_placeholder` above `st.chat_input(...)` for the initial welcome state (`len(st.session_state.messages) == 1`), wrapping the message history loop in `chat_container = st.container()` and clearing `starter_placeholder.empty()` once a question is submitted so starter prompts disappear cleanly across `st.rerun()`.
+1. **UX Fix (`ui/app.py`, `.streamlit/config.toml`, `ui/assets/`):**
+   - Surfaced `"AI assistant for handbook policies, fees, and campus offices. Confirm important decisions with the Training Office."` directly beneath `st.title` in the main pane so AI attribution remains visible even when the sidebar is collapsed on phone-width viewports (`375x812`).
+   - Added quick-start `EXAMPLES` buttons (`starter_ex_0`..`starter_ex_3`) in a compact 2x2 grid inside `starter_placeholder` above `st.chat_input(...)` for the initial welcome state (`len(st.session_state.messages) == 1`), wrapping the message history loop in `chat_container = st.container()` and clearing `starter_placeholder.empty()` once a question is submitted so starter prompts disappear cleanly across `st.rerun()`.
+   - Replaced visible Unicode emojis and default cartoon avatars with an understated light academic portal theme (`.streamlit/config.toml`), Google Material Symbols (`:material/school:`, `:material/account_balance:`, `:material/person:`, `:material/description:`), and downloaded Lucide SVG icons (`ui/assets/thumbs-up.svg`, `ui/assets/thumbs-down.svg`) styled over the F1 rating buttons while preserving `AppTest` label compatibility.
+   - Collapsed the sidebar on initial desktop load to eliminate duplicated prompt lists and tuned `@media (max-width: 640px)` padding so the header eyebrow renders cleanly below the fixed top bar.
 2. **Usability Verification & Evidence (`worksheets/`, `docs/evidence/`):**
    - Verified all 10 checklist items live on `http://127.0.0.1:8501` backed by Uvicorn on `127.0.0.1:8000` (including thesis credit query, lost student card query, out-of-scope escalation, whitespace/`2005`-character validation, stopped-backend alert banner, and thumbs-up/thumbs-down flows) and ticked all 10 items in `worksheets/usability_checklist.md`.
    - Documented 3 heuristic self-evaluation observations, commit `478984a`, 5 Before/After screenshots (`docs/evidence/tam-lab07-*.png`), and the 2-sentence Homework H2 reflection (`Feedback + Control`, `Errors + Graceful Failure`) in `worksheets/user_test_observations.md`.

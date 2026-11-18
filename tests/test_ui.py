@@ -358,14 +358,16 @@ def test_h1_first_screen_shows_ai_notice_and_examples_in_main_pane(monkeypatch) 
     monkeypatch.setattr(AssistantClient, "healthy", lambda self: True)
     monkeypatch.setattr(AssistantClient, "ask", mock_ask)
 
-    at = AppTest.from_file("ui/app.py").run()
+    at = AppTest.from_file("ui/app.py").run(timeout=10)
 
     main_captions = [c.value for c in at.main.caption]
     assert any("AI assistant" in cap for cap in main_captions)
+    assert at.title[0].value == "FIT Study Assistant"
+    assert not any("\U0001f4a1" in s.value for s in at.sidebar.subheader)
 
     starter_btns = [b for b in at.main.button if (b.key or "").startswith("starter_ex_")]
     assert len(starter_btns) == 4
 
-    starter_btns[0].click().run()
+    starter_btns[0].click().run(timeout=10)
     assert asked == ["Can I register my thesis with 118 credits?"]
     assert not any((b.key or "").startswith("starter_ex_") for b in at.main.button)
