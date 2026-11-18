@@ -74,6 +74,20 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-11-12 | Nhật Quỳnh (@nhatquynh1107) | Codex | Implement Lab 06 group LLM/A2 module (issue #66) | Quỳnh defined the stub-only scope. Codex implemented the offline LLM adapter, grounded JSON validation, prompt, settings and targeted tests; 60 targeted tests and Ruff check passed on code commit `13b8c35`. |
 | 2026-11-13 | Đạt (@Thanhdat3010) | Antigravity (Gemini) | Remove `except ImportError` fallbacks in `rag/answerer.py` and verify A1/A2 integration (TV3) | Removed fallback `rag.index` and `llm` import shims in `src/assistant_core/rag/answerer.py` after PR #60 and PR #67 merged, and added TV3 boundary, model-abstain, invalid-JSON/ungrounded-citation retry, and `llm=None` vs `StubLLM` tests in `tests/test_rag_answerer.py`. |
 | 2026-11-16 | Bội Anh (@htbaax) | Antigravity (Gemini) | Implement Lab 07 Negative Feedback Button & Dislike Rating Flow (F1) (issue #72) | Added dislike 👎 button in root `ui/app.py` with immediate container clearing (resolving F01) and safe retry on failure (resolving F02). Added unit & AppTest tests in root `tests/test_ui.py`. |
+| 2026-11-18 | Tâm (@AI-WFox) | Antigravity (Gemini) | Lab 07 Part E Usability Checklist, Homework H1 UX Fix & H2 PAIR Reflection | Verified all 10 checklist items against live Uvicorn + Streamlit servers across desktop (`1280x800`) and mobile (`375x812`), logged 3 usability observations, surfaced AI disclosure and quick-start example buttons in the main pane (`ui/app.py`, `tests/test_ui.py`), captured Before/After evidence, and wrote the 2-sentence Google PAIR reflection. |
+
+## Lab07 TV7 - Usability Checklist (Part E), H1 UX Fix, and H2 Google PAIR Reflection
+
+Author: Tâm (@AI-WFox) - Member 7 (TV7)
+
+1. **UX Fix (`ui/app.py`, commit `478984a`):**
+   - Surfaced `"This is an AI assistant. Check important decisions with the Training Office."` directly beneath `st.title` in the main pane so AI attribution remains visible even when the sidebar is collapsed on phone-width viewports (`375x812`).
+   - Added full-width quick-start `EXAMPLES` buttons (`starter_ex_0`..`starter_ex_3`) inside `starter_placeholder` above `st.chat_input(...)` for the initial welcome state (`len(st.session_state.messages) == 1`), wrapping the message history loop in `chat_container = st.container()` and clearing `starter_placeholder.empty()` once a question is submitted so starter prompts disappear cleanly across `st.rerun()`.
+2. **Usability Verification & Evidence (`worksheets/`, `docs/evidence/`):**
+   - Verified all 10 checklist items live on `http://127.0.0.1:8501` backed by Uvicorn on `127.0.0.1:8000` (including thesis credit query, lost student card query, out-of-scope escalation, whitespace/`2005`-character validation, stopped-backend alert banner, and thumbs-up/thumbs-down flows) and ticked all 10 items in `worksheets/usability_checklist.md`.
+   - Documented 3 heuristic self-evaluation observations, commit `478984a`, 5 Before/After screenshots (`docs/evidence/tam-lab07-*.png`), and the 2-sentence Homework H2 reflection (`Feedback + Control`, `Errors + Graceful Failure`) in `worksheets/user_test_observations.md`.
+3. **Regression Test (`tests/test_ui.py`):**
+   - Added `test_h1_first_screen_shows_ai_notice_and_examples_in_main_pane` using Streamlit `AppTest` to assert main-pane AI disclosure, rendering of all 4 starter buttons, prompt submission on click, and cleanup of `starter_ex_*` buttons after submission.
 
 ## Lab07 TV5 - Negative Feedback Button & Dislike Rating Flow (F1) (issue #72)
 
