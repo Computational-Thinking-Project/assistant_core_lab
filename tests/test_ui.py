@@ -3,11 +3,10 @@
 Covers:
   - AssistantClient: ask(), healthy(), send_feedback() — via httpx.MockTransport
   - validate_input()
+  - format_sources()           ← L1 (Trung Anh)
+  - status_note()              ← L2 (Trung Anh)
   - stream_generator()         ← Bonus D.5
   - format_source_badges()     ← Bonus D.5
-
-L1 (format_sources) and L2 (status_note) are intentionally NOT tested here;
-those belong to Trung Anh's PR.
 
 No third-party mock library required: httpx.MockTransport is part of httpx.
 """
@@ -16,8 +15,14 @@ from __future__ import annotations
 
 import httpx
 
-from ui.api_client import AssistantClient
-from ui.logic import format_source_badges, stream_generator, validate_input
+from ui.api_client import AssistantClient, ChatResult
+from ui.logic import (
+    format_source_badges,
+    format_sources,
+    status_note,
+    stream_generator,
+    validate_input,
+)
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -149,6 +154,41 @@ def test_validate_input() -> None:
     assert validate_input("   ") is not None
     assert validate_input("x" * 2001) is not None
     assert validate_input("How much is tuition?") is None
+
+
+# ---------------------------------------------------------------------------
+# L1 & L2 — format_sources and status_note (Trung Anh)
+# ---------------------------------------------------------------------------
+
+
+def test_format_sources() -> None:
+    assert format_sources([]) == ""
+    assert format_sources([{"id": "S26#1", "title": "1 Library borrowing"}]) == "Sources: S26#1 — 1 Library borrowing"
+    assert (
+        format_sources(
+            [
+                {"id": "H26#5.3", "title": "5.3 Thesis registration"},
+                {"id": "F26#1.1", "title": "Tuition per credit"},
+            ]
+        )
+        == "Sources: H26#5.3 — 5.3 Thesis registration; F26#1.1 — Tuition per credit"
+    )
+
+
+def test_status_note() -> None:
+    assert (
+        status_note(ChatResult(ok=True, escalate=True))
+        == "I could not find this in the official documents. A staff member can help: Training Office, room I.101."
+    )
+    assert (
+        status_note(ChatResult(ok=True, degraded=True))
+        == "Shown directly from the source document (the AI helper was unavailable)."
+    )
+    assert (
+        status_note(ChatResult(ok=True, escalate=True, degraded=True))
+        == "I could not find this in the official documents. A staff member can help: Training Office, room I.101."
+    )
+    assert status_note(ChatResult(ok=True)) is None
 
 
 # ---------------------------------------------------------------------------
