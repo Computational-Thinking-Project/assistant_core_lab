@@ -1,7 +1,7 @@
-"""Tests for ui/logic.py and ui/api_client.py — Bonus D.5 scope (Duy).
+"""Tests for UI logic, the HTTP client, and Streamlit feedback flows.
 
 Covers:
-  - AssistantClient: ask(), healthy(), send_feedback() — via httpx.MockTransport
+  - AssistantClient: ask() and send_feedback() — via httpx.MockTransport
   - validate_input()
   - format_sources()           ← L1 (Trung Anh)
   - status_note()              ← L2 (Trung Anh)
@@ -12,6 +12,8 @@ No third-party mock library required: httpx.MockTransport is part of httpx.
 """
 
 from __future__ import annotations
+
+import json
 
 import httpx
 
@@ -114,21 +116,33 @@ def test_ask_429() -> None:
     assert "too many" in result.error.lower()
 
 
+def test_ask_500() -> None:
+    client = _client_with([_mock_response(500, "temporary failure")])
+    result = client.ask("Hello?")
+    assert not result.ok
+    assert result.error == "Server error 500: temporary failure"
+
+
 # ---------------------------------------------------------------------------
 # AssistantClient.send_feedback() — POST /v1/feedback (expects 201)
 # ---------------------------------------------------------------------------
 
 
 def test_feedback_ok() -> None:
-    body = {"id": 1, "request_id": "req001abc123", "rating": 1, "created_at": "2026-01-01T00:00:00Z"}
-    client = _client_with([_mock_response(201, body)])
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/v1/feedback"
+        assert json.loads(request.read()) == {"request_id": "req001abc123", "rating": 1}
+        return httpx.Response(201, json={"id": 1, "created_at": "2026-01-01T00:00:00Z"})
+
+    client = AssistantClient(base_url=BASE, timeout=5.0, transport=httpx.MockTransport(handler))
     assert client.send_feedback("req001abc123", 1) is True
 
 
 def test_feedback_negative() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        import json
-
+        assert request.method == "POST"
+        assert request.url.path == "/v1/feedback"
         data = json.loads(request.read())
         assert data["rating"] == -1
         assert data["request_id"] == "abc123"
@@ -150,9 +164,10 @@ def test_feedback_fail() -> None:
 
 
 def test_validate_input() -> None:
-    assert validate_input("") is not None
-    assert validate_input("   ") is not None
-    assert validate_input("x" * 2001) is not None
+    assert validate_input("") == "Please type a question."
+    assert validate_input("   ") == "Please type a question."
+    assert validate_input("x" * 2000) is None
+    assert validate_input("x" * 2001) == "Your question is too long (max 2000 characters)."
     assert validate_input("How much is tuition?") is None
 
 
@@ -337,3 +352,31 @@ def test_f1_like_button_failed_feedback_allows_retry(monkeypatch) -> None:
     assert "req-fail-like" not in at.session_state.rated
     assert len([b for b in at.button if b.label == "👍"]) == 1
     assert len([b for b in at.button if b.label == "👎"]) == 1
+
+
+def test_f1_dislike_succeeds_after_failed_feedback_retry(monkeypatch) -> None:
+    from streamlit.testing.v1 import AppTest
+
+    calls: list[tuple[str, int]] = []
+
+    def mock_send_feedback(self, rid: str, rating: int) -> bool:
+        calls.append((rid, rating))
+        return len(calls) == 2
+
+    monkeypatch.setattr(AssistantClient, "healthy", lambda self: True)
+    monkeypatch.setattr(AssistantClient, "send_feedback", mock_send_feedback)
+    at = AppTest.from_file("ui/app.py").run()
+    at.session_state.messages.append({"role": "assistant", "content": "Sample answer", "request_id": "req-retry"})
+    at.run()
+
+    [b for b in at.button if b.label == "👎"][0].click().run()
+    assert calls == [("req-retry", -1)]
+    assert "req-retry" not in at.session_state.rated
+    assert any(b.label == "👎" for b in at.button)
+    assert any(b.label == "👍" for b in at.button)
+
+    [b for b in at.button if b.label == "👎"][0].click().run()
+    assert calls == [("req-retry", -1), ("req-retry", -1)]
+    assert "req-retry" in at.session_state.rated
+    assert not any(b.label == "👎" for b in at.button)
+    assert not any(b.label == "👍" for b in at.button)
