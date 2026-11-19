@@ -1,9 +1,9 @@
 # Lab 07 — API Integration & Part D.4 E2E Verification Report
 
-**Member:** Trương Thành Đạt (`@Thanhdat3010`, MSSV: `25127035`)  
-**Role:** API Integration & End-to-End Testing (Part C & Part D.4)  
-**Verified Base Commit (`main`):** `3f4e89e` (`feat(ui): implement format_sources (L1) and status_note (L2) (#80)`)  
-**Tracking Issue:** `#83`  
+- **Member:** Trương Thành Đạt (`@Thanhdat3010`, MSSV: `25127035`)
+- **Role:** API Integration & End-to-End Testing (Part C & Part D.4)
+- **Verified Base Commit (`main`):** `3f4e89e` (`feat(ui): implement format_sources (L1) and status_note (L2) (#80)`)
+- **Tracking Issue:** `#83`
 
 ---
 
