@@ -251,9 +251,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 _inject_portal_styles()
+HEALTH_CHECK_TIMEOUT_SECONDS = 5.0
 api_url = os.getenv("ASSISTANT_API_URL", "http://127.0.0.1:8000")
 client = AssistantClient(api_url)
-health_client = AssistantClient(api_url, timeout=0.5)
+# Tolerate slow local/cold /health responses while bounding stalled sockets well under the 30s chat timeout.
+health_client = AssistantClient(api_url, timeout=HEALTH_CHECK_TIMEOUT_SECONDS)
 
 # ---- session state: remembered between reruns --------------------------------
 if "session_id" not in st.session_state:

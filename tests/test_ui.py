@@ -414,3 +414,55 @@ def test_h1_first_screen_shows_ai_notice_and_examples_in_main_pane(monkeypatch) 
     starter_btns[0].click().run(timeout=10)
     assert asked == ["Can I register my thesis with 118 credits?"]
     assert not any((b.key or "").startswith("starter_ex_") for b in at.main.button)
+
+
+def test_h1_slow_health_check_does_not_show_offline_banner(monkeypatch) -> None:
+    import socket
+    import threading
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from streamlit.testing.v1 import AppTest
+
+    seen_paths: list[str] = []
+
+    class SlowHealthHandler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            seen_paths.append(self.path)
+            time.sleep(0.8)
+            body = b'{"status":"ok"}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, format: str, *args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), SlowHealthHandler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        monkeypatch.setenv("ASSISTANT_API_URL", f"http://127.0.0.1:{port}")
+        at = AppTest.from_file("ui/app.py").run(timeout=10)
+        assert seen_paths == ["/health"]
+        assert len(at.error) == 0
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        unused_port = sock.getsockname()[1]
+
+    monkeypatch.setenv("ASSISTANT_API_URL", f"http://127.0.0.1:{unused_port}")
+    started = time.monotonic()
+    down_at = AppTest.from_file("ui/app.py").run(timeout=10)
+    elapsed = time.monotonic() - started
+    assert elapsed < 3.0
+    assert len(down_at.error) == 1
+    assert "The assistant backend is not reachable" in down_at.error[0].value
+    assert "Training Office (room I.101)" in down_at.error[0].value
