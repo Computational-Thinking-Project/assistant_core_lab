@@ -1,6 +1,6 @@
 # FIT Study Assistant (CSC10014)
 
-Modular student assistant featuring a deterministic & offline RAG core (`assistant_core`), a FastAPI + SQLite REST backend (`assistant_api`), and a Streamlit chat UI (`ui/`, pending Lab 7 integration toward `v0.7-mvp`).
+Modular student assistant featuring a deterministic & offline RAG core (`assistant_core`), a FastAPI + SQLite REST backend (`assistant_api`), and a Streamlit chat UI (`ui/`).
 
 > **Repository layout note:** This repository uses a flat root layout (`src/`, `tests/`, `data/`, `scripts/`, `eval/`, `worksheets/`), so this root `README.md` serves as the team setup and run guide (rather than `starter/README.md`).
 
@@ -48,11 +48,6 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-> **Note (Lab 7 UI — pending integration):** `streamlit` is not yet pinned in `requirements.txt` on `main`. Until the Lab 7 UI integration PR updates `requirements.txt` (to include `streamlit==1.39.0`), install it manually if running the UI:
-> ```bash
-> pip install streamlit==1.39.0
-> ```
-
 ### Configure `.env`
 
 **Windows (PowerShell):**
@@ -79,7 +74,7 @@ Key settings in `.env` loaded by `assistant_core.config.load_settings()` (never 
 
 Start the backend API first, then start the Streamlit UI in a second terminal (both from the repository root with `.venv` activated).
 
-### Terminal 1 — FastAPI Backend (Available on `main`, port `8000`)
+### Terminal 1 — FastAPI Backend (Port `8000`)
 
 ```bash
 uvicorn assistant_api.main:create_app --factory --reload --port 8000
@@ -88,9 +83,7 @@ uvicorn assistant_api.main:create_app --factory --reload --port 8000
 - Interactive Swagger UI: http://127.0.0.1:8000/docs
 - Health check: http://127.0.0.1:8000/health
 
-### Terminal 2 — Streamlit UI (Pending Lab 7 `ui/` integration / `v0.7-mvp`, port `8501`)
-
-> Requires `ui/` (`ui/app.py`, `ui/api_client.py`, `ui/logic.py`) from the Lab 7 UI PRs (reference on branch `lab07/sources`).
+### Terminal 2 — Streamlit UI (Port `8501`)
 
 ```bash
 streamlit run ui/app.py --server.port 8501
@@ -175,11 +168,11 @@ python eval/compare_paths.py                         # deterministic vs retrieva
 
 ```bash
 pytest -q                                     # full test suite on main (offline; weather HTTP mocked)
+pytest -q tests/test_ui.py                    # Lab 7 UI logic, API client, and Streamlit AppTest suite
 ruff check src/assistant_api/main.py          # example: lint check on modified files
 ruff format --check src/assistant_api/main.py # example: format check on modified files
 ```
 
-- **UI tests (pending Lab 7 `ui/` integration):** `pytest -q tests/test_ui.py` once `tests/test_ui.py` is merged into `main`.
 - **Note on baseline `ruff check .` / `ruff format --check .`:** `main` currently carries 5 pre-existing `ruff check` findings (`practice/`, `scripts/migrate.py`, `src/assistant_core/service.py`, `tests/test_service_rag.py`) and 12 unformatted files; check modified files cleanly on feature PRs until baseline cleanup lands.
 
 ### Manual HTTP Smoke Checks (Git Bash)
@@ -199,7 +192,7 @@ To also test rate limiting (`--bonus`), restart Uvicorn (or wait 60s for a fresh
   1. **Base and target branch:** Branch from `main` (for example `git checkout -b feat/lab07-<member>-<scope> origin/main`) and open PRs into **`main`** (unless an integration branch is announced by the Tech Lead). **Never branch from or target `lab07/sources`** — it is a reference-only branch for lecturer materials.
   2. **Root workspace layout:** Place all active Lab 7 deliverables at the repository root (`ui/`, `tests/test_ui.py`, `worksheets/usability_checklist.md`, `worksheets/user_test_observations.md`, `requirements.txt`, `pyproject.toml` with `pythonpath = [".", "src"]`, `README.md`). **Do not** edit `lab07_lecturer_given/starter/` or merge lecturer starter folders into `main`.
   3. **Scoped PR ownership:** Keep each PR strictly within its assigned module (`ui/logic.py` for L1/L2, `ui/app.py` for F1 or D.5 bonus, `tests/test_ui.py` for UI tests, `worksheets/` for Part E + H1/H2) without overwriting other members' tasks or importing `assistant_core` inside `ui/`.
-- **Release gate:** After all module PRs pass review, merge into `main`, and pass the two-server Part D.4 E2E checks (along with removing pending-integration notes once `ui/` is landed), tag the release commit `v0.7-mvp`.
+- **Release gate:** After all module PRs pass review, merge into `main`, and pass the two-server Part D.4 E2E checks ([`docs/lab7/d4_e2e_report.md`](docs/lab7/d4_e2e_report.md)), tag the final release commit `v0.7-mvp`.
 
 ---
 
