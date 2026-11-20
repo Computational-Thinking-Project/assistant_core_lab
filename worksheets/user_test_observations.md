@@ -1,0 +1,29 @@
+# Lab 7 homework — 10-minute usability test
+
+- **Tester (Member 7 heuristic self-evaluation per team assignment):** Tam
+- **Date:** 2026-11-18
+- **Task evaluated:** "Find out if you can register your thesis with 118 credits, and where to replace a lost student card." (plus out-of-scope, invalid-input, and backend-down checks)
+
+Rule: act as a first-time user without prior setup knowledge, inspect every screen and edge case carefully, and record real UI/system issues.
+
+| # | What happened during evaluation | What a user expects | Why the system/UI caused it | Fix idea |
+|---|---|---|---|---|
+| 1 | On a `375x812` phone-width window (sidebar collapsed behind top-left `>`), the initial screen showed only the title and welcome bubble—neither clickable example buttons nor the `"This is an AI assistant..."` notice appeared in view. | New mobile visitors immediately see clear AI attribution and tappable starter prompts right on the landing screen without discovering the collapsed sidebar drawer. | In `ui/app.py`, the 4 `EXAMPLES` buttons and the AI notice lived only inside `with st.sidebar:`, which Streamlit collapses on narrow screens. | Render `"This is an AI assistant. Check important decisions with the Training Office."` below `st.title` in the main pane and display full-width quick-start buttons above `chat_input` on the initial state, clearing them once submitted. **(Implemented)** |
+| 2 | Answers for both `"Can I register my thesis with 118 credits?"` and `"Where can I replace a lost student card?"` rendered `Cited Sources (1)` collapsed by default (`H26#5.3 — 5.3 Thesis registration`, `S26#3 — 3 Student card replacement`) with book/tag emojis (`📚`, `🏷️`). | Policy citations should be immediately scannable to verify trust without an extra click per message, and source badges should read cleanly without cartoon emojis. | `render_enhanced_sources` in `ui/app.py` hardcodes `st.expander(..., expanded=False)` and mixes emojis with raw chunk IDs from `format_source_badges`. | Default citations to `expanded=True` on the latest answer and map `doc_id` prefixes to friendly labels; replace emojis with monochrome document icons and styled code badges. *(Emojis removed & pills styled; `expanded=True` deferred)* |
+| 3 | Out-of-scope prompt `"What is the capital of France?"` repeated `Training Office (room I.101)` twice (inside the reply text and the `st.info` note) alongside rating buttons, while stopping the backend originally displayed a developer CLI command (`uvicorn assistant_api.main:create_app --factory`) to students. | A single clear human-handoff callout without repeating room details back-to-back, and plain non-technical guidance when the service is offline. | `ui/app.py` unconditionally renders `status_note(result)` even when the backend refusal already embeds the office room, and originally put a developer startup command inside `st.error`. | Deduplicate overlapping escalation text when the refusal already cites `Training Office`, and replace the `uvicorn` CLI snippet with student-friendly retry/office instructions. *(Student-friendly `st.error` applied; escalation dedup deferred)* |
+
+The one change we made (commit / code): `478984a` and the follow-up institutional UI refinement in [`ui/app.py`](../ui/app.py), [`.streamlit/config.toml`](../.streamlit/config.toml), and Lucide SVG assets ([`ui/assets/`](../ui/assets/)) with regression test `test_h1_first_screen_shows_ai_notice_and_examples_in_main_pane` in [`tests/test_ui.py`](../tests/test_ui.py).
+
+## Before / after screenshots
+
+- Desktop (`1280x800`) before: [`docs/evidence/tam-lab07-before-desktop.png`](../docs/evidence/tam-lab07-before-desktop.png)
+- Desktop (`1280x800`) after (collapsed sidebar by default, light academic portal theme, 2x2 prompt cards, zero emojis): [`docs/evidence/tam-lab07-after-desktop.png`](../docs/evidence/tam-lab07-after-desktop.png)
+- Mobile (`375x812`) before (no AI notice or example buttons visible on first screen): [`docs/evidence/tam-lab07-before-mobile.png`](../docs/evidence/tam-lab07-before-mobile.png)
+- Mobile (`375x812`) after (AI disclosure + 4 suggested topics cleanly visible below top header with zero horizontal overflow): [`docs/evidence/tam-lab07-after-mobile.png`](../docs/evidence/tam-lab07-after-mobile.png)
+- Desktop flow after (starter grid cleared, `Cited sources (1)` expanded to `S26#3 — 3 Student card replacement`, Material Symbol avatars, and Lucide SVG feedback icons): [`docs/evidence/tam-lab07-after-desktop-flow.png`](../docs/evidence/tam-lab07-after-desktop-flow.png)
+
+## Homework H2 — Google PAIR Guidebook Reflection
+
+*(From chapters Feedback + Control and Errors + Graceful Failure)*
+
+The assistant already applies Google PAIR's *Errors + Graceful Failure* and *Feedback + Control* principles by catching invalid inputs, backend outages, and low-confidence queries with clear warnings or Training Office (`room I.101`) escalation instead of failing silently, while offering immediate per-answer thumbs-up/thumbs-down acknowledgment and safe retry when feedback delivery fails. As a next improvement under *Feedback + Control*, clicking thumbs-down could reveal an optional compact reason selector (such as outdated policy, wrong fact, or unhelpful answer) paired with a short expectation note explaining how student feedback is reviewed to improve future responses.
