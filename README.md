@@ -169,6 +169,7 @@ python eval/compare_paths.py                         # deterministic vs retrieva
 ```bash
 pytest -q                                     # full test suite on main (offline; weather HTTP mocked)
 pytest -q tests/test_ui.py                    # Lab 7 UI logic, API client, and Streamlit AppTest suite
+python redteam/run_redteam.py                 # Lab 8 red-team suite (in-process, writes redteam/report.md)
 ruff check src/assistant_api/main.py          # example: lint check on modified files
 ruff format --check src/assistant_api/main.py # example: format check on modified files
 ```
