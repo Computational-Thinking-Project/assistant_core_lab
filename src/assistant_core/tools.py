@@ -8,10 +8,33 @@ import re
 
 from .errors import InvalidRequest
 
+NUMBER_WORDS = {
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+}
+
+
+def _replace_number_words(text: str) -> str:
+    """Normalize English number words (zero..ten) to digits."""
+    lowered = text.lower()
+    for word, digit in NUMBER_WORDS.items():
+        lowered = re.sub(rf"\b{word}\b", str(digit), lowered)
+    return lowered
+
 
 def parse_credits(text: str) -> tuple[int, int]:
-    retake = re.search(r"(\d+)\s*retake", text)
-    numbers = [int(n) for n in re.findall(r"\d+", text)]
+    normalized = _replace_number_words(text)
+    retake = re.search(r"(\d+)\s*retake", normalized)
+    numbers = [int(n) for n in re.findall(r"\d+", normalized)]
     retake_n = int(retake.group(1)) if retake else 0
     others = numbers.copy()
 
