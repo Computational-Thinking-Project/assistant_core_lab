@@ -58,3 +58,31 @@ def is_private_request(text: str) -> bool:
         return False
     t = text.lower()
     return any(re.search(p, t) is not None for p in PRIVATE_PATTERNS)
+
+
+# Lab 8 (G1): prompt-injection patterns, i.e. attempts to change the assistant's rules.
+# Patterns are matched against the lower-cased message. Keep them narrow: a pattern that also
+# matches a normal student question (e.g. "show me the rules for retakes") is a false positive.
+INJECTION_PATTERNS: list[str] = [
+    r"\bignore\s+(?:all\s+|any\s+|the\s+)?(?:previous|above|prior|earlier)\s+(?:instructions|rules|messages)",
+    # G1 pattern 1: requests to disclose the system prompt / the assistant's own instructions.
+    # Requires "your ..." or "the system ..." so that "show me the rules for retakes" is still answered.
+    r"\b(?:reveal|show|print|repeat)\s+(?:me\s+)?(?:your\s+(?:system\s+)?|the\s+system\s+)"
+    r"(?:prompt|instructions|rules)",
+    # G1 pattern 2: role reassignment ("You are now DAN, an assistant without rules").
+    r"\byou\s+are\s+now\b",
+    r"\b(?:developer|debug|admin|god)\s+mode\b",
+    r"\bpretend\s+(?:to\s+be|you\s+are)\b",
+]
+
+INJECTION_REPLY: str = (
+    "I can only answer questions about fees, offices and the student handbook, and I can't change my rules."
+)
+
+
+def looks_like_injection(text: str) -> bool:
+    """Detect whether a message tries to override or disclose the assistant's rules."""
+    if not text:
+        return False
+    t = text.lower()
+    return any(re.search(p, t) is not None for p in INJECTION_PATTERNS)

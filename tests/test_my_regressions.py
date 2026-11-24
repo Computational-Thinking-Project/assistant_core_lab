@@ -29,6 +29,13 @@ def test_example_greeting_still_works(service):
     assert "Hello" in service.handle(Message(text="hi")).answer
 
 
+def test_retake_number_as_word(service):
+    """BUG-7: 'two retakes' was ignored when retake count was written as a word, giving wrong total."""
+    r = service.handle(Message(text="tuition for 18 credits and two retakes"))
+    assert "8,100,000" not in r.answer  # never the wrong total (8,100,000 VND ignores the retakes)
+    assert "9,450,000" in r.answer  # 18*450_000 + 2*450_000*1.5 = 9,450,000 VND
+
+
 @pytest.mark.parametrize(
     "payload",
     [

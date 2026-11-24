@@ -230,8 +230,20 @@ class AssistantService:
         if not text:
             return Response(answer="empty", intent=Intent.UNKNOWN)
 
-        intent = self.router(text, self.get_office_names())
-        response = self._dispatch(intent, text, msg)
+        # Lab 8 (G1): refuse prompt-injection attempts before routing, so that a keyword such as
+        # "fee" inside an injected message can never reach a tool, retrieval or the LLM.
+        from assistant_core.guard import INJECTION_REPLY, looks_like_injection
+
+        if looks_like_injection(text):
+            response = Response(
+                answer=INJECTION_REPLY,
+                intent=Intent.UNKNOWN,
+                path="abstain",
+                confidence=0.0,
+            )
+        else:
+            intent = self.router(text, self.get_office_names())
+            response = self._dispatch(intent, text, msg)
 
         latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
         self.logger.info(
