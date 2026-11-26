@@ -11,7 +11,6 @@ source citation display using st.expander with badge formatting.
 
 from __future__ import annotations
 
-import base64
 import os
 import sys
 import uuid
@@ -22,6 +21,7 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # so "import ui..." works under streamlit
 
 from ui.api_client import AssistantClient
+from ui.icons import ASSISTANT_AVATAR, USER_AVATAR, avatar_for, svg_data_uri
 from ui.logic import (
     EXAMPLES,
     WELCOME,
@@ -32,22 +32,12 @@ from ui.logic import (
     validate_input,
 )
 
-ASSETS_DIR = Path(__file__).resolve().parent / "assets"
-ASSISTANT_AVATAR = ":material/account_balance:"
-USER_AVATAR = ":material/person:"
-
-
-def _svg_data_uri(filename: str) -> str:
-    """Encode a static local SVG asset as a data URI for CSS icon buttons."""
-    encoded = base64.b64encode((ASSETS_DIR / filename).read_bytes()).decode("ascii")
-    return f"data:image/svg+xml;base64,{encoded}"
-
 
 @st.cache_data(show_spinner=False)
 def _portal_css() -> str:
     """Build static academic portal CSS with Base64-encoded local Lucide SVG icons."""
-    up_uri = _svg_data_uri("thumbs-up.svg")
-    down_uri = _svg_data_uri("thumbs-down.svg")
+    up_uri = svg_data_uri("thumbs-up.svg")
+    down_uri = svg_data_uri("thumbs-down.svg")
     return f"""
 <style>
 [data-testid="stDecoration"],
@@ -226,11 +216,6 @@ def _inject_portal_styles() -> None:
     st.markdown(_portal_css(), unsafe_allow_html=True)
 
 
-def _avatar_for(role: str) -> str:
-    """Return the Material Symbol icon identifier for a chat role."""
-    return USER_AVATAR if role == "user" else ASSISTANT_AVATAR
-
-
 # ---- Bonus D.5: Enhanced Sources Display ------------------------------------
 def render_enhanced_sources(sources_list: list[dict], fallback_str: str = "") -> None:
     """Render cited sources in an interactive expandable section without emojis."""
@@ -287,7 +272,7 @@ with st.sidebar:
 chat_container = st.container()
 with chat_container:
     for i, m in enumerate(st.session_state.messages):
-        with st.chat_message(m["role"], avatar=_avatar_for(m["role"])):
+        with st.chat_message(m["role"], avatar=avatar_for(m["role"])):
             if m.get("is_error"):
                 st.warning(m["content"])
             else:
