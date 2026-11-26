@@ -16,6 +16,12 @@ if TYPE_CHECKING:
 
 
 PROMPTS = Path(__file__).parent / "prompts"
+_INLINE_CITATION_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9_-]*#[A-Za-z0-9._-]+)\]")
+
+
+def find_unretrieved_inline_citations(text: str, allowed_ids: set[str]) -> list[str]:
+    """Return any inline [doc#section] citations in *text* absent from *allowed_ids*."""
+    return [cid for cid in _INLINE_CITATION_RE.findall(text) if cid not in allowed_ids]
 
 
 class AnswerDraft(BaseModel):
@@ -56,8 +62,14 @@ def parse_draft(raw: str, allowed_ids: set[str]) -> AnswerDraft:
         raise ProviderError("invalid structured output") from exc
     if not draft.abstain and not draft.answer.strip():
         raise ProviderError("answer is empty")
-    if not draft.abstain and (not draft.source_ids or not set(draft.source_ids) <= allowed_ids):
+    if not draft.abstain and (
+        not draft.source_ids
+        or not set(draft.source_ids) <= allowed_ids
+        or find_unretrieved_inline_citations(draft.answer, allowed_ids)
+    ):
         raise ProviderError("answer cites sources that were not retrieved")
+    if draft.source_ids:
+        draft = draft.model_copy(update={"source_ids": list(dict.fromkeys(draft.source_ids))})
     return draft
 
 
