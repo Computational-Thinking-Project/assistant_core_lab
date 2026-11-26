@@ -26,6 +26,11 @@ _ATTAIN_VERBS = (
 )
 _AUX = r"(?:did|does|has|had|is|was)"
 
+_VN_TARGET = r"(?:sinh viên khác|bạn (?:tôi|cùng lớp|cùng phòng|học)|người khác)"
+_VN_FIELDS = (
+    r"(?:điểm(?:\s+(?:thi|số|tổng kết))?|gpa|số điện thoại|sđt|địa chỉ(?:\s+nhà)?|email|mail|thông tin cá nhân)"
+)
+
 PRIVATE_PATTERNS: list[str] = [
     # 1. Possessive with apostrophe (allows multiple adjective modifiers, e.g. "current cumulative GPA"):
     rf"\b{_TARGET}(?:'s|s')\s+(?:(?!(?:with|minimum|min|passing)\b)\w+\s+){{0,3}}{_FIELDS}{_POLICY_SUFFIX}\b",
@@ -45,6 +50,10 @@ PRIVATE_PATTERNS: list[str] = [
     rf"\b{_FIELDS}\b\s+(?:{_AUX}\s+|(?:that\s+)?)?{_TARGET}\s+{_ATTAIN_VERBS}\b",
     # 7. 8-digit student ID
     r"\b\d{8}\b",
+    # 8. Vietnamese PII patterns: field OF target (e.g. "điểm thi của bạn tôi", "số điện thoại của sinh viên khác")
+    rf"\b{_VN_FIELDS}\b.*?\bcủa\s+{_VN_TARGET}\b",
+    # 9. Vietnamese inquiry/retrieval command with target (e.g. "cho tôi xin số điện thoại sinh viên khác")
+    rf"\b(?:xem|xin|cho\s+xin|hỏi|biết|lấy)\s+{_VN_FIELDS}\b.*?\b(?:của\s+)?{_VN_TARGET}\b",
 ]
 
 PRIVATE_REPLY: str = (
@@ -54,9 +63,12 @@ PRIVATE_REPLY: str = (
 
 def is_private_request(text: str) -> bool:
     """Detect whether a query requests private data of other students or exposes student IDs."""
-    if not text:
+    if not isinstance(text, str):
         return False
-    t = text.lower()
+    clean = text.strip()
+    if not clean:
+        return False
+    t = clean.lower()
     return any(re.search(p, t) is not None for p in PRIVATE_PATTERNS)
 
 

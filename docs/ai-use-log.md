@@ -79,6 +79,42 @@ Track AI-assisted development, prompts, generated outputs, reviews, and modifica
 | 2026-11-19 | Đạt (@Thanhdat3010) | Antigravity (Gemini) | Consult on Lab 07 Part D.4 acceptance report format and E2E verification checklist (issue #83) | Consulted AI for Markdown report structure and E2E checklist formatting. Reviewed `ui/api_client.py` HTTP contract against `src/assistant_api/main.py`, verified two-server execution (`uvicorn :8000` + `streamlit :8501`) across all 7 Part D.4 scenarios with evidence screenshots in `docs/evidence/dat-lab07-d4-*.png`, and confirmed `pytest` + `git diff --check` pass. |
 | 2026-11-20 | Đình Hùng (@benalexx007) | Antigravity (Gemini) | Lab 07 Tech Lead integration, dependency pin, README finalization, and release verification | Coordinated and reviewed Lab 07 module PRs (`#75`, `#76`, `#82`, `#81`), pinned `streamlit==1.39.0` in `requirements.txt`, finalized `README.md` for `v0.7-mvp`, and verified the full integrated test suite on `main`. |
 | 2026-11-24 | Tâm (@AI-WFox) | Claude | Lab 08 Homework H1: prove or replace the AI-written UI icon helpers from Lab 07 | Moved `svg_data_uri()` and `avatar_for()` from `ui/app.py` into `ui/icons.py`, wrote 23 tests in `tests/test_ui_icons.py`; 8 failed on the original code (empty name, zero-byte file, path traversal, absolute path, non-SVG file), so the function was rewritten to validate its input. All 23 pass after the fix. |
+| 2026-11-26 | Bội Anh (@htbaax) | Antigravity (Gemini) | Lab 08 Homework H1 & H2: prove and harden AI-written is_private_request privacy guard (#95) | Wrote 35 tests in `tests/test_guard_h1.py` covering empty string, zero, 50k-char large input, Vietnamese PII requests, and wrong types. 12 failed on the original code; hardened `is_private_request` with type validation and Vietnamese PII patterns; all 35 passed after fix. Recorded H2 reading reflection. |
+
+## Lab08 TV5 - Homework H1 (Prove It, or Replace It) and H2 (Reading) (issue #95)
+
+Author: Hà Trần Bội Anh (@htbaax) - Member 5 (TV5)
+
+### H1 - AI-written function: `is_private_request()` (Lab 06, `src/assistant_core/guard.py`)
+
+`is_private_request(text)` was generated with AI assistance in Lab 06 (row 2026-11-10 above) to detect whether queries ask for private student records (grades, GPA, phone, address, email, 8-digit student IDs) before retrieval or LLM execution.
+
+1. **Targeted Tests (`tests/test_guard_h1.py`, 35 test cases):**
+   - **Empty & whitespace inputs (7 cases):** `""`, `" "`, `"   "`, `"\t"`, `"\n"`, `"\r\n"`, `"  \t \n  "`.
+   - **Zero & numeric inputs (6 cases):** `"0"`, `"0000"`, `"123"`, `"00000000"` (8 zeros = student ID format), `"22127001"`, `"student 22127005"`.
+   - **Very large inputs (2 cases):** 50,000 characters of benign text (finished in < 0.05s, returns `False`); 50,000 characters containing embedded private GPA query (finished in < 0.05s, returns `True` without ReDoS).
+   - **Vietnamese PII requests & controls (13 cases):**
+     - Flagged: `"Cho tôi xem điểm thi của bạn tôi"`, `"Xem số điện thoại của sinh viên khác"`, `"Địa chỉ nhà của bạn cùng lớp là gì?"`, `"GPA của bạn tôi là bao nhiêu?"`, `"Cho xin email của bạn cùng phòng"`, `"Tôi muốn hỏi số điện thoại sinh viên khác"`, `"Xem thông tin cá nhân của bạn học"`.
+     - Non-private control cases: `"Học phí cho 18 tín chỉ là bao nhiêu?"`, `"Điều kiện GPA tối thiểu để làm khóa luận tốt nghiệp?"`, `"Điểm chuẩn xét học bổng học kỳ này?"`, `"Phòng đào tạo ở đâu?"`, `"Thủ tục cấp lại thẻ sinh viên bị mất"`, `"Tôi có thể rút môn học trước thời hạn nào?"`.
+   - **Wrong types (8 cases):** `None`, `0`, `42`, `3.14`, `[]`, `["What is the GPA of another student?"]`, `{"message": "What is the GPA of another student?"}`, `b"What is the GPA of another student?"`.
+
+2. **Result on the original code: 12 failed, 23 passed.**
+   - All 7 Vietnamese private requests failed (`False` instead of `True`) because the original regex patterns only supported English keywords (`student`, `friend`, `classmate`, `grade`, `gpa`, `phone`, `address`).
+   - 5 non-string inputs (`42`, `3.14`, non-empty `list`, `dict`, `bytes`) crashed with `AttributeError: '...' object has no attribute 'lower'` or `TypeError`.
+
+3. **Hardening & Fix (`src/assistant_core/guard.py`):**
+   - Added explicit type guard: `if not isinstance(text, str): return False` and trimmed whitespace check `if not text.strip(): return False`. Non-string inputs are handled safely without raising unhandled runtime exceptions.
+   - Added Vietnamese target (`_VN_TARGET = r"(?:sinh viên khác|bạn (?:tôi|cùng lớp|cùng phòng|học)|người khác)"`) and Vietnamese field terms (`_VN_FIELDS = r"(?:điểm(?:\s+(?:thi|số|tổng kết))?|gpa|số điện thoại|sđt|địa chỉ(?:\s+nhà)?|email|mail|thông tin cá nhân)"`) to `PRIVATE_PATTERNS`, covering field-of-target and explicit inquiry commands.
+   - **Result after fix: All 35 tests pass in 0.02s.** The existing 87 unit tests in `tests/test_guard.py` also pass 100% with zero regressions.
+
+### H2 - Reading (pytest Get Started, OWASP Top 10 for LLM Applications: LLM01 Prompt Injection)
+
+1. **One attack I had not thought of:**
+   Indirect prompt injection via poisoned data in the knowledge base or external web sources (e.g. an attacker hiding malicious instructions in a course syllabus, markdown document, or user-uploaded feedback that instructs the LLM to ignore system rules and exfiltrate user interaction logs).
+2. **Which of our layers would stop it:**
+   Our system prevents this because:
+   - The knowledge base is strictly offline and curated under version control in `data/kb/` with deterministic BM25 chunking (no live web ingestion).
+   - The prompt explicitly enforces `answer_v1.txt` strict JSON grounding (`"answer only from sources"`), the parser enforces citations belong to retrieved chunk IDs (`set(source_ids) <= allowed_ids`), and deterministic tools calculate fees by Python code rather than LLM text generation.
 
 ## Lab08 TV7 - Homework H1 (Prove It, or Replace It) and H2 (Reading)
 
