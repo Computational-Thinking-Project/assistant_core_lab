@@ -62,8 +62,38 @@ The parser extracts numbers with `re.findall(r"\d+", normalized)`, so `-10` beco
 
 The proposed bonus mitigation rejects negative numeric counts after number-word normalization and before unsigned extraction. The fee calculator will also reject a negative retake count when called directly. A regression test will exercise invalid requests through the API and retain the normal control. Parser/calculator checks will cover the same negative-count family.
 
+The investigation also reproduced an additional variant: on baseline `7c97632`, `parse_credits("tuition for 18 credits and -2 retakes")` returns `(18, 2)`, and a direct `tuition(18, -2, 450000, 1.5, 30)` call computes `6750000`. Trung Anh's bonus work covers these related negative-retake paths as well as the original INT08 case. Finding attribution for INT08 remains with the case author and execution report above.
+
+## Implemented mitigation and verification
+
+The fix is commit `f78406e3baaedc6e5448e8a192092b0911552917` (`fix(tools): reject negative credit inputs`). The parser rejects an ASCII minus followed by optional whitespace and digits after converting English number words to digits. The calculator checks that retake counts are non-negative. The existing error-handling path returns the validation message before a fee amount is produced.
+
+| Check | Command from repo root | Observed result |
+|---|---|---|
+| Regression before fix | `python -m pytest -q tests/test_tools.py tests/test_my_regressions.py -k negative` | 9 failed, 20 deselected; recorded before modifying production code |
+| Targeted suite after fix | `python -m pytest -q tests/test_tools.py tests/test_my_regressions.py` | 29 passed, 1 dependency warning |
+| Original red-team suite | `python redteam/run_redteam.py redteam/cases.jsonl` | 12/12 PASS, exit 0 |
+| Internal red-team suite | `python redteam/run_redteam.py redteam/cases_internal.jsonl` | 10/10 PASS, exit 0 |
+| Root regression, first run | `python -m pytest -q` | 382 passed, 1 failed, 1 dependency warning; Streamlit timeout described below |
+| Root regression, recheck | Same command, fresh pytest temporary directory | 382 passed, 1 failed, 1 dependency warning, 38.39 seconds |
+| Changed Python files | `python -m ruff check src/assistant_core/tools.py tests/test_tools.py tests/test_my_regressions.py` and corresponding `ruff format --check` | Passed; three files formatted |
+
+Exact INT08 response after the fix:
+
+```text
+Credit and retake counts must not be negative.
+```
+
+INT10 still returns `Your tuition is 9,450,000 VND.`. The targeted suite also preserves the `two retakes` control and retake-first parsing. New regression coverage consists of five parser variants, one direct-calculator check and three API cases. API assertions require a fee-intent validation response with no `VND` and retain the valid control.
+
+Both full runs encountered `tests/test_ui.py::test_f1_dislike_button_in_ui`, which timed out at Streamlit's existing three-second `AppTest.run()` limit. An isolated rerun on the fix also timed out. The same isolated test passed on an archived baseline `7c97632` (1 passed in 10.12 seconds). Replacing only `tools.py` with its baseline contents in the original workspace also produced an isolated pass (1 passed in 9.61 seconds); the fixed file was restored byte-for-byte immediately afterward. UI code and `tests/test_ui.py` have no diff against the baseline. These differing timing results leave the cause unresolved. Full-suite success remains pending; the timeout is recorded for review.
+
+Final code/test verification used `f78406e` with Python 3.12.14 and the offline stub/BM25 configuration above. Pytest used fresh `--basetemp` directories under the external run directory and `-p no:cacheprovider`. Starlette's deprecated AnyIO `BlockingPortal` alias causes the dependency warning. For whitespace verification, Git used `core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol` to recognize the pre-existing CRLF line endings in the tools files. No repository Git configuration was changed.
+
+Outputs are captured in workspace `tmp/lab08-trunganh-bonus-20261127/`, including `regression-before-fix.txt`, `regression-after-fix.txt`, both final red-team reports, `full-suite.txt`, `full-suite-recheck.txt`, UI diagnostic transcripts and `verification.json`. The final documentation commit adds evidence to this worksheet and catalogue without changing the tested code.
+
 ## Debrief decisions awaiting group confirmation
 
 - Trung Anh's proposed severity and mitigation are recorded above for review.
 - Confirmation from Quynh and Boi Anh, meeting details and any agreed follow-up remain pending. No meeting attendance or group consensus has been recorded.
-- The initial report remains tied to its tested commit. Fix verification will be added below after execution.
+- Technical verification is recorded above. Duy's code/document review and the group's severity/mitigation confirmation remain pending.
