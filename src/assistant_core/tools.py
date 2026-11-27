@@ -33,6 +33,8 @@ def _replace_number_words(text: str) -> str:
 
 def parse_credits(text: str) -> tuple[int, int]:
     normalized = _replace_number_words(text)
+    if re.search(r"-\s*\d+", normalized):
+        raise InvalidRequest("Credit and retake counts must not be negative.")
     retake = re.search(r"(\d+)\s*retake", normalized)
     numbers = [int(n) for n in re.findall(r"\d+", normalized)]
     retake_n = int(retake.group(1)) if retake else 0
@@ -48,4 +50,6 @@ def parse_credits(text: str) -> tuple[int, int]:
 def tuition(credits: int, retake: int, rate: int, retake_multiplier: float, max_credits: int) -> int:
     if not 1 <= credits <= max_credits:
         raise InvalidRequest(f"Credits must be between 1 and {max_credits}.")
+    if retake < 0:
+        raise InvalidRequest("Retake credits must not be negative.")
     return int(credits * rate + retake * rate * retake_multiplier)

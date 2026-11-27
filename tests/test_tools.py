@@ -30,6 +30,21 @@ def test_parse_without_credits():
         parse_credits("tuition fee")
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "tuition for -10 credits",
+        "tuition for - 10 credits",
+        "tuition for -two credits",
+        "tuition for 18 credits and -2 retakes",
+        "tuition for 18 credits and - two retakes",
+    ],
+)
+def test_parse_rejects_negative_credit_or_retake_counts(text):
+    with pytest.raises(InvalidRequest, match="negative"):
+        parse_credits(text)
+
+
 def test_tuition_value():
     assert tuition(18, 2, 450000, 1.5, 30) == 9450000
 
@@ -42,3 +57,8 @@ def test_tuition_without_retake():
 def test_tuition_out_of_range(credits):
     with pytest.raises(InvalidRequest):
         tuition(credits, 0, 450000, 1.5, 30)
+
+
+def test_tuition_rejects_negative_retake_count():
+    with pytest.raises(InvalidRequest, match="negative"):
+        tuition(18, -2, 450000, 1.5, 30)
