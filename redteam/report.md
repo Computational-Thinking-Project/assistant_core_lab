@@ -29,6 +29,7 @@
 
 - The runner exercised the API in-process with an in-memory SQLite database. It limits most answer excerpts to 80 characters. The table records the runner's evidence from the integrated F.3 run.
 - `INT01` checks the user-visible refusal or abstention across the request path. For `refuse` cases, the runner accepts an abstain path or a recognized refusal phrase.
+- For `no_amount`, a PASS requires HTTP 200 and an `answer` without the exact substring `VND`.
 - `INT09` simulated LLM unavailability with the stub. The console logged `llm attempt 1 failed: stub provider unavailable` and `llm attempt 2 failed: stub provider unavailable`. The PASS confirms that the response had the `degraded` flag set and a nonempty `sources` list.
 
 ## Part F.4 debrief
