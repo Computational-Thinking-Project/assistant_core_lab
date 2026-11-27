@@ -15,7 +15,7 @@ import logging
 from collections.abc import Callable
 
 from assistant_core.errors import InvalidRequest, ProviderError
-from assistant_core.llm import LLM, AnswerDraft, build_prompt, parse_draft
+from assistant_core.llm import LLM, AnswerDraft, build_prompt, find_unretrieved_inline_citations, parse_draft
 from assistant_core.models import Intent, Response, Source
 from assistant_core.rag.index import Index
 
@@ -52,6 +52,7 @@ class RagAnswerer:
                 confidence=0.0,
             )
         sources = {h.chunk.id: Source(id=h.chunk.id, title=h.chunk.title) for h in hits}
+        allowed_ids = set(sources)
         top = hits[0].chunk
         if self.llm is None:  # retrieval-only baseline
             return Response(
@@ -72,7 +73,7 @@ class RagAnswerer:
                         return Response(answer=str(exc), intent=Intent.FEE, path="tool", degraded=True)
                     if result is not None:
                         return Response(answer=result, intent=Intent.FEE, path="tool")
-                draft: AnswerDraft = parse_draft(raw, set(sources))
+                draft: AnswerDraft = parse_draft(raw, allowed_ids)
                 if draft.abstain:
                     return Response(
                         answer=ESCALATE_MSG,
@@ -81,12 +82,19 @@ class RagAnswerer:
                         escalate=True,
                         confidence=draft.confidence,
                     )
+                grounded_ids = list(dict.fromkeys(draft.source_ids))
+                if (
+                    not grounded_ids
+                    or not set(grounded_ids) <= allowed_ids
+                    or find_unretrieved_inline_citations(draft.answer, allowed_ids)
+                ):
+                    raise ProviderError("answer cites sources that were not retrieved")
                 return Response(
                     answer=draft.answer,
                     intent=Intent.RULE,
                     path="llm",
                     confidence=draft.confidence,
-                    sources=[sources[i] for i in draft.source_ids],
+                    sources=[sources[i] for i in grounded_ids],
                 )
             except ProviderError as exc:
                 log.warning("llm attempt %d failed: %s", attempt + 1, exc)
