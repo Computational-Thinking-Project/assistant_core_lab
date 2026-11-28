@@ -38,7 +38,7 @@ For `refuse`, the runner accepts an abstain path or a recognized refusal phrase.
 
 **Where:** deterministic credit parsing and fee response.
 
-**Proposed severity:** Major. Invalid negative credits produce a plausible positive amount for the user. The application only returns the amount as an answer.
+**Confirmed severity:** Major, agreed by Quynh and Boi Anh in the PR #100 debrief linked below. Invalid negative credits produce a plausible positive amount for the user. The application only returns the amount as an answer.
 
 ### Steps to reproduce
 
@@ -56,11 +56,11 @@ Exact observed answer:
 Your tuition is 4,500,000 VND.
 ```
 
-### Cause and proposed mitigation
+### Cause and agreed mitigation
 
 The parser extracts numbers with `re.findall(r"\d+", normalized)`, so `-10` becomes `10`. The downstream credit-range check receives a valid positive value and computes `10 * 450000`. The retake extraction uses the same unsigned convention, so negative retake counts also need protection in this fee-input path.
 
-The proposed bonus mitigation rejects negative numeric counts after number-word normalization and before unsigned extraction. The fee calculator will also reject a negative retake count when called directly. A regression test will exercise invalid requests through the API and retain the normal control. Parser/calculator checks will cover the same negative-count family.
+The agreed bonus mitigation rejects negative numeric counts after number-word normalization and before unsigned extraction. The fee calculator also rejects a negative retake count when called directly. Regression tests exercise invalid requests through the API and retain the normal control. Parser/calculator checks cover the same negative-count family.
 
 The investigation also reproduced an additional variant: on baseline `7c97632`, `parse_credits("tuition for 18 credits and -2 retakes")` returns `(18, 2)`, and a direct `tuition(18, -2, 450000, 1.5, 30)` call computes `6750000`. Trung Anh's bonus work covers these related negative-retake paths as well as the original INT08 case. Finding attribution for INT08 remains with the case author and execution report above.
 
@@ -92,8 +92,16 @@ Final code/test verification used `f78406e` with Python 3.12.14 and the offline 
 
 Outputs are captured in workspace `tmp/lab08-trunganh-bonus-20261127/`, including `regression-before-fix.txt`, `regression-after-fix.txt`, both final red-team reports, `full-suite.txt`, `full-suite-recheck.txt`, UI diagnostic transcripts and `verification.json`. The final documentation commit adds evidence to this worksheet and catalogue without changing the tested code.
 
-## Debrief decisions awaiting group confirmation
+## Debrief conclusions confirmed on PR #100
 
-- Trung Anh's proposed severity and mitigation are recorded above for review.
-- Confirmation from Quynh and Boi Anh, meeting details and any agreed follow-up remain pending. No meeting attendance or group consensus has been recorded.
-- Technical verification is recorded above. Duy's code/document review and the group's severity/mitigation confirmation remain pending.
+The debrief took place asynchronously through PR comments on 2026-11-27 and 2026-11-28. Trung Anh requested feedback, Quynh confirmed the execution evidence, and Boi Anh confirmed the case design and assessed the mitigation. Times below use Asia/Ho_Chi_Minh (UTC+7).
+
+| Participant | Date and time | Recorded input | Evidence |
+|---|---|---|---|
+| Trung Anh (`@philip-kkk`) | 2026-11-27 19:44 | Shared reproduction, proposed Major severity and requested confirmation of expected behavior and coverage | [Debrief request](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7218612493) |
+| Quynh (`@nhatquynh1107`) | 2026-11-27 21:16 | Confirmed INT08/INT10 observations, agreed Major severity, and assessed mitigation/coverage based on the diff and reported test results | [Execution-owner confirmation](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7220570634) |
+| Boi Anh (`@htbaax`) | 2026-11-28 08:29 | Confirmed the `no_amount` expectation, agreed Major severity and supported parser/calculator protection and negative-count regression coverage | [Case-designer confirmation](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7231702006) |
+
+The participants agreed that INT08 violates the intended boundary check, that Major reflects the misleading fee amount, and that the implemented mitigation covers the reported negative-credit case and related negative-retake variants. Trung Anh recorded these conclusions on 2026-11-28. Quynh explicitly based her fix assessment on the diff and reported results; the confirmations supply debrief decisions, with the execution evidence remaining the runs recorded above.
+
+Boi Anh described the UI timeout as a random local AppTest issue. Her comment included no new execution evidence establishing that cause. The recorded full-suite result remains 382 passed and 1 failed, with the timeout cause unresolved. Duy's code/document review remains pending.

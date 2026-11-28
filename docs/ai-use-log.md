@@ -10,7 +10,15 @@
 - Verification code/test commit is `f78406e3baaedc6e5448e8a192092b0911552917`. Both root pytest runs reported 382 passed and 1 Streamlit UI timeout, plus one dependency warning. An isolated rerun also timed out, while the same isolated test passed on archived baseline `7c97632` and with baseline `tools.py` temporarily restored in the original workspace. Fixed `tools.py` was then restored byte-for-byte. UI code/test files are identical to baseline; the timeout cause remains unresolved. Full-suite success is pending and the worksheet records these results.
 - Ruff check/format passed for the three changed Python files. Diff whitespace checking recognizes existing CRLF with a per-command `cr-at-eol` setting. No repository configuration was changed.
 - Test subprocesses used an offline stub and root KB, with environment proxy/SSL key-log variables removed to avoid known HTTPX initialization issues. Commands captured generated red-team reports outside the repo and restored the original report path after each run.
-- Evidence and commands are in `worksheets/redteam_exchange.md`, with scratch transcripts under workspace `tmp/lab08-trunganh-bonus-20261127/`. This final documentation commit records the tested code. Human meeting participation, group consensus and reviewer approval remain pending.
+- Evidence and commands are in `worksheets/redteam_exchange.md`, with scratch transcripts under workspace `tmp/lab08-trunganh-bonus-20261127/`. This verification checkpoint recorded the tested code while debrief confirmation and reviewer approval were pending.
+
+### F.4 debrief confirmation update - 2026-11-28
+
+- The user authorized local commit 4 to record the replies on PR #100. Codex re-read the comments and updated only the worksheet, failure catalogue and this log.
+- Quynh confirmed the original INT08 behavior, agreed Major severity and assessed coverage from the diff and reported results on 2026-11-27. [Quynh's confirmation](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7220570634)
+- Boi Anh confirmed the case's expected behavior, agreed Major severity and supported the negative-credit/retake mitigation and regression coverage on 2026-11-28. [Boi Anh's confirmation](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7231702006)
+- The worksheet records the asynchronous debrief, participants, local timestamps and conclusions. Severity is now confirmed by those participants. Duy's code/document review remains pending.
+- Boi Anh's interpretation of the UI timeout is attributed to her comment. The historical 382 passed / 1 failed result and unresolved cause are retained. This documentation update includes no new test execution.
 
 ## Lab06 group retrieval - Trung Anh / philip-kkk - 2026-11-10
 
