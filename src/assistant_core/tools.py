@@ -32,20 +32,24 @@ def _replace_number_words(text: str) -> str:
 
 
 def parse_credits(text: str) -> tuple[int, int]:
-    normalized = _replace_number_words(text)
-    retake = re.search(r"(\d+)\s*retake", normalized)
-    numbers = [int(n) for n in re.findall(r"\d+", normalized)]
-    retake_n = int(retake.group(1)) if retake else 0
-    others = numbers.copy()
-
+    normalized = _replace_number_words(text.replace("\u2212", "-"))
+    number_pattern = r"(?P<sign>-)?\s*(?P<count>\d+)"
+    retake = re.search(number_pattern + r"\s*retake", normalized)
+    numbers = list(re.finditer(number_pattern, normalized))
     if retake:
-        others.remove(retake_n)
-    if not others:
+        # Match by position so equal credit and retake counts remain distinct.
+        numbers = [number for number in numbers if number.span("count") != retake.span("count")]
+    if not numbers:
         raise InvalidRequest("How many credits?")
-    return others[0], retake_n
+    credits = numbers[0]
+    if credits.group("sign") or (retake and retake.group("sign")):
+        raise InvalidRequest("Credit and retake counts must not be negative.")
+    return int(credits.group("count")), int(retake.group("count")) if retake else 0
 
 
 def tuition(credits: int, retake: int, rate: int, retake_multiplier: float, max_credits: int) -> int:
     if not 1 <= credits <= max_credits:
         raise InvalidRequest(f"Credits must be between 1 and {max_credits}.")
+    if retake < 0:
+        raise InvalidRequest("Retake credits must not be negative.")
     return int(credits * rate + retake * rate * retake_multiplier)

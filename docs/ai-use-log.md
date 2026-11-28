@@ -1,5 +1,34 @@
 # AI Use Log
 
+## Lab08 F.4 and bonus mitigation - Trung Anh / philip-kkk - 2026-11-27
+
+- Tool: Codex. The user authorized three local commits covering the debrief worksheet, bonus fix/regression and verification evidence.
+- Baseline `7c97632e955ea5cfe7c9e5e5d949eca983c43f55`, branch `fix/lab08-trunganh-debrief-bonus`. Inputs were the Lab08 assignment, lecturer worksheet/bug-report templates, Boi Anh's internal cases and Quynh's PR #99 at `46ebbaf`.
+- Independently reproduced 9/10 internal cases passing on the current baseline, with INT08 returning `Your tuition is 4,500,000 VND.` for negative credits. Confirmed unsigned extraction discards the sign. Also reproduced negative-retake acceptance through parsing and direct calculation.
+- Added the internal debrief worksheet and proposed Major severity, with meeting/group confirmation explicitly pending. Implemented negative-count rejection after number-word normalization and a negative-retake check in the calculator. Added five parser cases, one calculator check and three API regression cases, including the valid fee control.
+- Before the production fix, all nine new cases failed (20 existing tests deselected). After the fix, tools/regression tests reported 29 passed. Original red-team suite reported 12/12 PASS and internal suite 10/10 PASS, both exit 0. Valid control still returned `9,450,000 VND`.
+- Verification code/test commit is `f78406e3baaedc6e5448e8a192092b0911552917`. Both root pytest runs reported 382 passed and 1 Streamlit UI timeout, plus one dependency warning. An isolated rerun also timed out, while the same isolated test passed on archived baseline `7c97632` and with baseline `tools.py` temporarily restored in the original workspace. Fixed `tools.py` was then restored byte-for-byte. UI code/test files are identical to baseline; the timeout cause remains unresolved. Full-suite success is pending and the worksheet records these results.
+- Ruff check/format passed for the three changed Python files. Diff whitespace checking recognizes existing CRLF with a per-command `cr-at-eol` setting. No repository configuration was changed.
+- Test subprocesses used an offline stub and root KB, with environment proxy/SSL key-log variables removed to avoid known HTTPX initialization issues. Commands captured generated red-team reports outside the repo and restored the original report path after each run.
+- Evidence and commands are in `worksheets/redteam_exchange.md`, with scratch transcripts under workspace `tmp/lab08-trunganh-bonus-20261127/`. This verification checkpoint recorded the tested code while debrief confirmation and reviewer approval were pending.
+
+### F.4 debrief confirmation update - 2026-11-28
+
+- The user authorized local commit 4 to record the replies on PR #100. Codex re-read the comments and updated only the worksheet, failure catalogue and this log.
+- Quynh confirmed the original INT08 behavior, agreed Major severity and assessed coverage from the diff and reported results on 2026-11-27. [Quynh's confirmation](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7220570634)
+- Boi Anh confirmed the case's expected behavior, agreed Major severity and supported the negative-credit/retake mitigation and regression coverage on 2026-11-28. [Boi Anh's confirmation](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7231702006)
+- The worksheet records the asynchronous debrief, participants, local timestamps and conclusions. Severity is now confirmed by those participants. Duy's code/document review remains pending.
+- Boi Anh's interpretation of the UI timeout is attributed to her comment. The historical 382 passed / 1 failed result and unresolved cause are retained. This documentation update includes no new test execution.
+
+### PR #100 review fixes and self-review - 2026-11-28
+
+- The user authorized two local commits and self-review for Duy's R1/R2 findings. Codex added regressions before changing production code: 13 failed and 30 passed on `86d463d`, plus one dependency warning.
+- Code/test commit `3daa216998ec7206d02411fa86715993dd8a8e5b` normalizes Unicode minus, preserves numeric signs and validates only the selected credit/retake tokens. Retake exclusion uses token positions to preserve equal-count inputs. The direct calculator guard is retained.
+- Targeted parser/API regression: 43 passed, one dependency warning. API tests reject Unicode-negative inputs without a fee amount and preserve `9,450,000 VND` for valid requests with an intake-year suffix. Self-review covered the diff and edge cases; 63 non-negative parser comparisons matched baseline `86d463d`. No additional finding was identified.
+- Both red-team runners passed on `3daa216`: original 12/12 and internal 10/10, exit 0. Full root regression reported 396 passed, 1 failed and one dependency warning in 39.28 seconds. The same Streamlit UI test timed out after three seconds; its cause remains unresolved and full-suite success is not claimed.
+- Ruff check/format and diff whitespace checks passed. Verification retained the prior offline configuration and child-process environment cleanup. Generated reports were captured outside the repo and the original report path was restored.
+- This documentation update records the tested commit in `worksheets/redteam_exchange.md` and updates the catalogue. Debrief decisions remain confirmed; Duy's re-review remains pending. Run evidence is under workspace `tmp/lab08-pr100-review-fixes-20261128/`. No push or GitHub comment was performed.
+
 ## Lab06 group retrieval - Trung Anh / philip-kkk - 2026-11-10
 
 - Tool: Codex. The user authorized implementation and local commits; no push or GitHub mutation was performed.

@@ -43,6 +43,47 @@ def test_retake_number_as_word(service):
 
 
 @pytest.mark.parametrize(
+    "message",
+    [
+        "tuition for -10 credits",
+        "tuition for - 10 credits",
+        "tuition for 18 credits and -2 retakes",
+        "tuition for \u221210 credits",
+        "tuition for 18 credits and \u22122 retakes",
+        "tuition for \u2212two retakes and 18 credits",
+    ],
+)
+def test_negative_fee_input_returns_no_amount(regression_api: TestClient, message: str) -> None:
+    """INT08: reject negative counts before unsigned extraction can produce a fee."""
+    response = regression_api.post("/v1/chat", json={"message": message})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent"] == "fee"
+    assert "VND" not in body["answer"]
+    assert "negative" in body["answer"].lower()
+
+    control = regression_api.post("/v1/chat", json={"message": "tuition for 18 credits and 2 retakes"})
+    assert control.status_code == 200
+    assert "9,450,000 VND" in control.json()["answer"]
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "tuition for 18 credits and 2 retakes - 2026 intake",
+        "tuition for 2 retakes and 18 credits - 2026 intake",
+    ],
+)
+def test_intake_separator_keeps_valid_tuition(regression_api: TestClient, message: str) -> None:
+    """PR #100 R2: a separator before an intake year must not reject valid counts."""
+    response = regression_api.post("/v1/chat", json={"message": message})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent"] == "fee"
+    assert "9,450,000 VND" in body["answer"]
+
+
+@pytest.mark.parametrize(
     "payload",
     [
         {"message": ""},
