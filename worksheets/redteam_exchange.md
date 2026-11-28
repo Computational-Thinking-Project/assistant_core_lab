@@ -60,11 +60,11 @@ Your tuition is 4,500,000 VND.
 
 The parser extracts numbers with `re.findall(r"\d+", normalized)`, so `-10` becomes `10`. The downstream credit-range check receives a valid positive value and computes `10 * 450000`. The retake extraction uses the same unsigned convention, so negative retake counts also need protection in this fee-input path.
 
-The agreed bonus mitigation rejects negative numeric counts after number-word normalization and before unsigned extraction. The fee calculator also rejects a negative retake count when called directly. Regression tests exercise invalid requests through the API and retain the normal control. Parser/calculator checks cover the same negative-count family.
+The agreed bonus mitigation rejects negative credit and retake counts after normalization. The fee calculator also rejects a negative retake count when called directly. Regression tests exercise invalid requests through the API and retain the normal control. Parser/calculator checks cover the same negative-count family. The PR review refinement below limits sign validation to the selected counts and adds Unicode minus support.
 
 The investigation also reproduced an additional variant: on baseline `7c97632`, `parse_credits("tuition for 18 credits and -2 retakes")` returns `(18, 2)`, and a direct `tuition(18, -2, 450000, 1.5, 30)` call computes `6750000`. Trung Anh's bonus work covers these related negative-retake paths as well as the original INT08 case. Finding attribution for INT08 remains with the case author and execution report above.
 
-## Implemented mitigation and verification
+## Original mitigation and verification at f78406e
 
 The fix is commit `f78406e3baaedc6e5448e8a192092b0911552917` (`fix(tools): reject negative credit inputs`). The parser rejects an ASCII minus followed by optional whitespace and digits after converting English number words to digits. The calculator checks that retake counts are non-negative. The existing error-handling path returns the validation message before a fee amount is produced.
 
@@ -104,4 +104,31 @@ The debrief took place asynchronously through PR comments on 2026-11-27 and 2026
 
 The participants agreed that INT08 violates the intended boundary check, that Major reflects the misleading fee amount, and that the implemented mitigation covers the reported negative-credit case and related negative-retake variants. Trung Anh recorded these conclusions on 2026-11-28. Quynh explicitly based her fix assessment on the diff and reported results; the confirmations supply debrief decisions, with the execution evidence remaining the runs recorded above.
 
-Boi Anh described the UI timeout as a random local AppTest issue. Her comment included no new execution evidence establishing that cause. The recorded full-suite result remains 382 passed and 1 failed, with the timeout cause unresolved. Duy's code/document review remains pending.
+Boi Anh described the UI timeout as a random local AppTest issue. Her comment included no new execution evidence establishing that cause. That checkpoint recorded 382 passed and 1 failed, with the timeout cause unresolved. Duy's subsequent review and the new verification checkpoint follow below.
+
+## PR #100 review fixes - 2026-11-28
+
+Duy (`@johannguyen015`) reported two P2 findings in [his review comment](https://github.com/Computational-Thinking-Project/assistant_core_lab/pull/100#issuecomment-7236703832). Trung Anh addressed both in code/test commit `3daa216998ec7206d02411fa86715993dd8a8e5b` (`fix(tools): validate signs on selected credit counts`).
+
+| Finding | Change | Regression evidence |
+|---|---|---|
+| R1: Unicode minus in `tuition for −10 credits` bypassed the ASCII guard and produced a positive amount | Normalize U+2212 to ASCII minus before converting number words; preserve signs while selecting counts | Parser cases cover Unicode minus, whitespace, number words and retake-first input; API cases require a negative-count validation response with no `VND` |
+| R2: `tuition for 18 credits and 2 retakes - 2026 intake` was rejected by the global minus check | Validate signs only on the selected credit and retake tokens; exclude the retake token by its position | Valid suffix controls return `(18, 2)` and API amount `9,450,000 VND`; parser controls also cover equal counts and a Unicode year separator |
+
+The parser retains the existing first-non-retake-number selection rule. Matching the retake token by position keeps equal numeric values distinct. The direct calculator's negative-retake check remains in place.
+
+| Check | Command or method from repo root | Observed result |
+|---|---|---|
+| Reproduce review findings on `86d463d`, before production changes | `python -m pytest -q tests/test_tools.py tests/test_my_regressions.py` | 13 failed, 30 passed, 1 dependency warning |
+| Targeted suite on the code committed as `3daa216` | Same command | 43 passed, 1 dependency warning |
+| Compatibility self-review | Compare 63 non-negative input combinations against `86d463d`, including retake-first and equal-count inputs | All parser results matched |
+| Original red-team suite on `3daa216` | `python redteam/run_redteam.py redteam/cases.jsonl` | 12/12 PASS, exit 0 |
+| Internal red-team suite on `3daa216` | `python redteam/run_redteam.py redteam/cases_internal.jsonl` | 10/10 PASS, exit 0 |
+| Full root suite on `3daa216` | `python -m pytest -q -p no:cacheprovider` with a fresh external `--basetemp` | 396 passed, 1 failed, 1 dependency warning, 39.28 seconds |
+| Changed Python files | Ruff check and format verification | Passed; three files already formatted |
+
+The full-suite failure is still `tests/test_ui.py::test_f1_dislike_button_in_ui`: Streamlit's `AppTest.run()` timed out after three seconds. Its cause remains unresolved; this run does not establish full-suite success. The dependency warning remains Starlette's deprecated AnyIO `BlockingPortal` alias.
+
+Self-review checked sign normalization, selected-token validation, number-word compatibility, token positions and API behavior, with no additional finding identified. This is Trung Anh's AI-assisted self-review; Duy's re-review of the fix remains pending. The debrief severity and participant confirmations above are unchanged.
+
+Verification used Python 3.12.14, the offline stub/BM25 configuration and child-process environment cleanup described above. Transcripts and captured reports are under workspace `tmp/lab08-pr100-review-fixes-20261128/` (`before-fix.txt`, `after-fix.txt`, `original-runner.txt`, `internal-runner.txt`, both reports, `full-suite.txt` and `verification.json`). Generated `redteam/report.md` was restored to its original presence/content after the runs. The subsequent documentation commit records these results without changing the verified code.

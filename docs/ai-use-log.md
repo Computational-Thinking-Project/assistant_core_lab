@@ -20,6 +20,15 @@
 - The worksheet records the asynchronous debrief, participants, local timestamps and conclusions. Severity is now confirmed by those participants. Duy's code/document review remains pending.
 - Boi Anh's interpretation of the UI timeout is attributed to her comment. The historical 382 passed / 1 failed result and unresolved cause are retained. This documentation update includes no new test execution.
 
+### PR #100 review fixes and self-review - 2026-11-28
+
+- The user authorized two local commits and self-review for Duy's R1/R2 findings. Codex added regressions before changing production code: 13 failed and 30 passed on `86d463d`, plus one dependency warning.
+- Code/test commit `3daa216998ec7206d02411fa86715993dd8a8e5b` normalizes Unicode minus, preserves numeric signs and validates only the selected credit/retake tokens. Retake exclusion uses token positions to preserve equal-count inputs. The direct calculator guard is retained.
+- Targeted parser/API regression: 43 passed, one dependency warning. API tests reject Unicode-negative inputs without a fee amount and preserve `9,450,000 VND` for valid requests with an intake-year suffix. Self-review covered the diff and edge cases; 63 non-negative parser comparisons matched baseline `86d463d`. No additional finding was identified.
+- Both red-team runners passed on `3daa216`: original 12/12 and internal 10/10, exit 0. Full root regression reported 396 passed, 1 failed and one dependency warning in 39.28 seconds. The same Streamlit UI test timed out after three seconds; its cause remains unresolved and full-suite success is not claimed.
+- Ruff check/format and diff whitespace checks passed. Verification retained the prior offline configuration and child-process environment cleanup. Generated reports were captured outside the repo and the original report path was restored.
+- This documentation update records the tested commit in `worksheets/redteam_exchange.md` and updates the catalogue. Debrief decisions remain confirmed; Duy's re-review remains pending. Run evidence is under workspace `tmp/lab08-pr100-review-fixes-20261128/`. No push or GitHub comment was performed.
+
 ## Lab06 group retrieval - Trung Anh / philip-kkk - 2026-11-10
 
 - Tool: Codex. The user authorized implementation and local commits; no push or GitHub mutation was performed.
