@@ -38,11 +38,29 @@ def test_parse_without_credits():
         "tuition for -two credits",
         "tuition for 18 credits and -2 retakes",
         "tuition for 18 credits and - two retakes",
+        "tuition for \u221210 credits",
+        "tuition for \u2212 10 credits",
+        "tuition for \u2212two credits",
+        "tuition for 18 credits and \u22122 retakes",
+        "tuition for \u2212two retakes and 18 credits",
     ],
 )
 def test_parse_rejects_negative_credit_or_retake_counts(text):
     with pytest.raises(InvalidRequest, match="negative"):
         parse_credits(text)
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("tuition for 18 credits and 2 retakes - 2026 intake", (18, 2)),
+        ("tuition for 2 retakes and 18 credits - 2026 intake", (18, 2)),
+        ("tuition for 18 credits and two retakes \u2212 2026 intake", (18, 2)),
+        ("tuition for 2 credits and 2 retakes - 2026 intake", (2, 2)),
+    ],
+)
+def test_parse_keeps_credit_counts_with_intake_suffix(text, expected):
+    assert parse_credits(text) == expected
 
 
 def test_tuition_value():
